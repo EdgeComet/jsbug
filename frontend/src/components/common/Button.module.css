@@ -1,0 +1,98 @@
+/* Button Component Styles */
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 10px 20px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  white-space: nowrap;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+/* Primary variant */
+.primary {
+  background: var(--accent-coral);
+  color: white;
+}
+
+.primary:hover:not(:disabled) {
+  background: var(--accent-coral-dark);
+  transform: translateY(-1px);
+}
+
+/* Ghost variant */
+.ghost {
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px solid var(--border-light);
+}
+
+.ghost:hover:not(:disabled) {
+  background: var(--bg-tertiary);
+  color: var(--text-body);
+}
+
+/* Config variant */
+.config {
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  background: var(--dark-tertiary);
+  color: var(--text-dim);
+  border-radius: 8px;
+}
+
+.config:hover:not(:disabled) {
+  background: var(--dark-secondary);
+  color: var(--text-light);
+}
+
+/* Compare variant */
+.compare {
+  background: linear-gradient(135deg, var(--accent-coral), var(--accent-orange));
+  color: white;
+  padding: 12px 24px;
+  font-size: 13px;
+  box-shadow: 0 4px 15px rgba(255, 107, 74, 0.3);
+}
+
+.compare:hover:not(:disabled) {
+  box-shadow: 0 6px 20px rgba(255, 107, 74, 0.4);
+  transform: translateY(-2px);
+}
+
+/* Advanced variant */
+.advanced {
+  width: 100%;
+  padding: 10px 16px;
+  background: transparent;
+  color: var(--text-muted);
+  border: 1px dashed var(--border-light);
+  border-radius: 6px;
+  font-size: 11px;
+}
+
+.advanced:hover:not(:disabled) {
+  border-color: var(--border-medium);
+  color: var(--text-body);
+}
+
+/* Size variants */
+.sm {
+  padding: 6px 12px;
+  font-size: 11px;
+}

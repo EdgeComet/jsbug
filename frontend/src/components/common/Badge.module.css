@@ -1,0 +1,104 @@
+/* Badge Component Styles */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+/* Status badges */
+.status {
+  padding: 3px 10px;
+  border-radius: 12px;
+}
+
+.status.success,
+.status.\32 00 {
+  background: var(--success-light);
+  color: var(--success);
+}
+
+.status.warning,
+.status.\33 01,
+.status.\33 02 {
+  background: var(--warning-light);
+  color: var(--warning);
+}
+
+.status.error,
+.status.\34 04,
+.status.\35 00 {
+  background: var(--error-light);
+  color: var(--error);
+}
+
+.status.blocked {
+  background: var(--bg-white);
+  color: var(--text-muted);
+  border: 1px solid var(--border-medium);
+}
+
+.status.failed {
+  background: var(--error-light);
+  color: var(--error);
+}
+
+/* Type badges */
+.type {
+  padding: 2px 8px;
+  border-radius: 4px;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  border: 1px solid currentColor;
+  background: var(--bg-white);
+}
+
+.type.document {
+  color: var(--type-document);
+}
+
+.type.script {
+  color: var(--type-script);
+}
+
+.type.stylesheet {
+  color: var(--type-stylesheet);
+}
+
+.type.image {
+  color: var(--type-image);
+}
+
+.type.font {
+  color: var(--type-font);
+}
+
+.type.xhr {
+  color: var(--type-xhr);
+}
+
+.type.other {
+  color: var(--type-other);
+}
+
+/* Index badges */
+.index {
+  padding: 3px 10px;
+  border-radius: 12px;
+  font-size: 11px;
+}
+
+.index.yes {
+  background: var(--success-light);
+  color: var(--success);
+}
+
+.index.no {
+  background: var(--error-light);
+  color: var(--error);
+}

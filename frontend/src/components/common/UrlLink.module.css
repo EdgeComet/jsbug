@@ -1,0 +1,28 @@
+.urlLink {
+  display: inline;
+  word-break: break-all;
+}
+
+.urlText {
+  word-break: break-all;
+}
+
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #6b7280;
+  transition: color 0.15s ease;
+  margin-left: 6px;
+  vertical-align: middle;
+  flex-shrink: 0;
+}
+
+.icon:hover {
+  color: #3b82f6;
+}
+
+.icon svg {
+  width: 14px;
+  height: 14px;
+}

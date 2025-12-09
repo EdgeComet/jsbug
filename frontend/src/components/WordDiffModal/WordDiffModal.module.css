@@ -1,0 +1,81 @@
+/* WordDiffModal Component Styles - Modal-specific only */
+
+/* Modal Content */
+.modalContent {
+  padding: 20px 24px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* Section Headers */
+.section {
+  margin-bottom: 24px;
+}
+
+.section:last-child {
+  margin-bottom: 0;
+}
+
+.sectionHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-light);
+}
+
+.sectionTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-dark);
+}
+
+.sectionCount {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.sectionCountAdded {
+  background: var(--success-light);
+  color: var(--success);
+}
+
+.sectionCountRemoved {
+  background: var(--error-light);
+  color: var(--error);
+}
+
+/* Word Chips */
+.wordList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.wordChip {
+  display: inline-block;
+  padding: 4px 10px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  border-radius: 4px;
+}
+
+.wordChipAdded {
+  background: var(--success-light);
+  color: var(--success);
+}
+
+.wordChipRemoved {
+  background: var(--error-light);
+  color: var(--error);
+}
+
+/* Empty State */
+.emptyMessage {
+  color: var(--text-muted);
+  font-style: italic;
+  font-size: 13px;
+}

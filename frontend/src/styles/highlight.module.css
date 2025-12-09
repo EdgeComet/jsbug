@@ -1,0 +1,11 @@
+.highlight {
+  background: var(--warning-light);
+  color: var(--text-dark);
+  padding: 1px 2px;
+  border-radius: 2px;
+}
+
+.highlightActive {
+  background: #ef4444 !important;
+  color: white !important;
+}

@@ -1,0 +1,499 @@
+package server
+
+import (
+	"context"
+	"encoding/json"
+	"net/http"
+	"net/url"
+	"strings"
+	"time"
+
+	"go.uber.org/zap"
+
+	"github.com/user/jsbug/internal/chrome"
+	"github.com/user/jsbug/internal/config"
+	"github.com/user/jsbug/internal/fetcher"
+	"github.com/user/jsbug/internal/parser"
+	"github.com/user/jsbug/internal/types"
+)
+
+// Renderer interface for rendering pages
+type Renderer interface {
+	Render(ctx context.Context, opts chrome.RenderOptions) (*chrome.RenderResult, error)
+	IsAvailable() bool
+}
+
+// Fetcher interface for fetching pages
+type Fetcher interface {
+	Fetch(ctx context.Context, opts fetcher.FetchOptions) (*fetcher.FetchResult, error)
+}
+
+// RenderHandler handles render API requests
+type RenderHandler struct {
+	renderer   Renderer
+	fetcher    Fetcher
+	parser     *parser.Parser
+	config     *config.Config
+	logger     *zap.Logger
+	sseManager *SSEManager
+}
+
+// NewRenderHandler creates a new RenderHandler
+func NewRenderHandler(renderer Renderer, fetcher Fetcher, parser *parser.Parser, cfg *config.Config, logger *zap.Logger) *RenderHandler {
+	return &RenderHandler{
+		renderer: renderer,
+		fetcher:  fetcher,
+		parser:   parser,
+		config:   cfg,
+		logger:   logger,
+	}
+}
+
+// SetSSEManager sets the SSE manager for publishing progress events
+func (h *RenderHandler) SetSSEManager(manager *SSEManager) {
+	h.sseManager = manager
+}
+
+// ServeHTTP handles POST /api/render requests
+func (h *RenderHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	startTime := time.Now()
+
+	if r.Method != http.MethodPost {
+		h.writeError(w, http.StatusMethodNotAllowed, types.ErrInvalidURL, "Method not allowed")
+		return
+	}
+
+	// Parse request body
+	var req types.RenderRequest
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		h.writeError(w, http.StatusBadRequest, types.ErrInvalidURL, "Invalid JSON request body")
+		return
+	}
+
+	// Apply defaults
+	req.ApplyDefaults()
+
+	// Validate request
+	if err := h.validateRequest(&req); err != nil {
+		h.writeError(w, http.StatusBadRequest, err.Code, err.Message)
+		return
+	}
+
+	// Process request based on JS enabled flag
+	var response *types.RenderResponse
+	if req.JSEnabled {
+		response = h.handleJSRender(r.Context(), &req)
+	} else {
+		response = h.handleFetch(r.Context(), &req)
+	}
+
+	h.writeJSON(w, response)
+
+	logFields := []zap.Field{
+		zap.String("url", req.URL),
+		zap.Bool("js_enabled", req.JSEnabled),
+		zap.Bool("success", response.Success),
+		zap.Float64("total_time", time.Since(startTime).Seconds()),
+	}
+	if response.Data != nil {
+		logFields = append(logFields, zap.Int("status_code", response.Data.StatusCode))
+	}
+	h.logger.Info("Render request", logFields...)
+}
+
+// validateRequest validates the render request
+func (h *RenderHandler) validateRequest(req *types.RenderRequest) *types.RenderError {
+	// Validate URL
+	if req.URL == "" {
+		return &types.RenderError{Code: types.ErrInvalidURL, Message: "URL is required"}
+	}
+
+	u, err := url.Parse(req.URL)
+	if err != nil {
+		return &types.RenderError{Code: types.ErrInvalidURL, Message: "Invalid URL format"}
+	}
+
+	if u.Scheme != "http" && u.Scheme != "https" {
+		return &types.RenderError{Code: types.ErrInvalidURL, Message: "URL must use http or https scheme"}
+	}
+
+	if u.Host == "" {
+		return &types.RenderError{Code: types.ErrInvalidURL, Message: "URL must have a host"}
+	}
+
+	// Validate timeout
+	if !req.ValidateTimeout() {
+		return &types.RenderError{
+			Code:    types.ErrInvalidTimeout,
+			Message: "Timeout must be between 1 and 60 seconds",
+		}
+	}
+
+	// Validate wait event
+	if !types.IsValidWaitEvent(req.WaitEvent) {
+		return &types.RenderError{
+			Code:    types.ErrInvalidWaitEvent,
+			Message: "Invalid wait event: " + req.WaitEvent,
+		}
+	}
+
+	return nil
+}
+
+// handleJSRender processes a request with JavaScript rendering
+func (h *RenderHandler) handleJSRender(ctx context.Context, req *types.RenderRequest) *types.RenderResponse {
+	requestID := req.RequestID
+
+	if h.renderer == nil || !h.renderer.IsAvailable() {
+		h.publishError(requestID, types.ErrChromeUnavailable, "Chrome renderer is not available")
+		return &types.RenderResponse{
+			Success: false,
+			Error: &types.RenderError{
+				Code:    types.ErrChromeUnavailable,
+				Message: "Chrome renderer is not available",
+			},
+		}
+	}
+
+	// Publish started event
+	h.publishStarted(requestID, req.URL)
+
+	// Create blocklist
+	blocklist := chrome.NewBlocklist(req.BlockAnalytics, req.BlockAds, req.BlockSocial, req.BlockedTypes)
+
+	// Build render options
+	opts := chrome.RenderOptions{
+		URL:            req.URL,
+		UserAgent:      types.ResolveUserAgent(req.UserAgent),
+		Timeout:        time.Duration(req.Timeout) * time.Second,
+		WaitEvent:      req.WaitEvent,
+		Blocklist:      blocklist,
+		ViewportWidth:  h.config.Chrome.ViewportWidth,
+		ViewportHeight: h.config.Chrome.ViewportHeight,
+	}
+
+	// Publish navigating event
+	h.publishNavigating(requestID, req.URL)
+
+	// Render the page
+	result, err := h.renderer.Render(ctx, opts)
+	if err != nil {
+		resp := h.handleRenderError(err)
+		if resp.Error != nil {
+			h.publishError(requestID, resp.Error.Code, resp.Error.Message)
+		}
+		return resp
+	}
+
+	// Publish capturing event
+	h.publishCapturing(requestID, len(result.Network))
+
+	// Publish parsing event
+	h.publishParsing(requestID)
+
+	// Parse HTML content (JS mode doesn't capture HTTP headers)
+	parseResult, _ := h.parser.ParseWithOptions(result.HTML, parser.ParseOptions{
+		PageURL: result.FinalURL,
+	})
+
+	// Publish complete event
+	h.publishComplete(requestID, result.RenderTime)
+
+	return h.buildJSResponse(result, parseResult)
+}
+
+// handleFetch processes a request without JavaScript rendering
+func (h *RenderHandler) handleFetch(ctx context.Context, req *types.RenderRequest) *types.RenderResponse {
+	requestID := req.RequestID
+
+	if h.fetcher == nil {
+		h.publishError(requestID, types.ErrFetchFailed, "HTTP fetcher is not available")
+		return &types.RenderResponse{
+			Success: false,
+			Error: &types.RenderError{
+				Code:    types.ErrFetchFailed,
+				Message: "HTTP fetcher is not available",
+			},
+		}
+	}
+
+	// Publish started event
+	h.publishStarted(requestID, req.URL)
+
+	// Build fetch options
+	opts := fetcher.FetchOptions{
+		URL:             req.URL,
+		UserAgent:       types.ResolveUserAgent(req.UserAgent),
+		Timeout:         time.Duration(req.Timeout) * time.Second,
+		FollowRedirects: req.ShouldFollowRedirects(),
+	}
+
+	// Publish navigating event
+	h.publishNavigating(requestID, req.URL)
+
+	// Fetch the page
+	result, err := h.fetcher.Fetch(ctx, opts)
+	if err != nil {
+		resp := h.handleFetchError(err)
+		if resp.Error != nil {
+			h.publishError(requestID, resp.Error.Code, resp.Error.Message)
+		}
+		return resp
+	}
+
+	// Publish parsing event
+	h.publishParsing(requestID)
+
+	// Parse HTML content with headers
+	parseResult, _ := h.parser.ParseWithOptions(result.HTML, parser.ParseOptions{
+		PageURL:    result.FinalURL,
+		XRobotsTag: result.GetXRobotsTag(),
+		LinkHeader: result.GetLinkHeader(),
+	})
+
+	// Publish complete event
+	h.publishComplete(requestID, result.FetchTime)
+
+	return h.buildFetchResponse(result, parseResult)
+}
+
+// buildJSResponse builds response from JS render result
+func (h *RenderHandler) buildJSResponse(result *chrome.RenderResult, parseResult *parser.ParseResult) *types.RenderResponse {
+	data := &types.RenderData{
+		StatusCode:    result.StatusCode,
+		FinalURL:      result.FinalURL,
+		RedirectURL:   result.RedirectURL,
+		PageSizeBytes: result.PageSizeBytes,
+		RenderTime:    result.RenderTime,
+		HTML:          result.HTML,
+		Requests:      result.Network,
+		Console:       result.Console,
+		JSErrors:      result.JSErrors,
+		Lifecycle:     result.Lifecycle,
+	}
+
+	// Add parsed content
+	if parseResult != nil {
+		h.applyParseResult(data, parseResult)
+	}
+
+	// Enrich images with sizes from network requests (JS mode only)
+	enrichImagesWithSizes(data.Images, data.Requests)
+
+	return &types.RenderResponse{
+		Success: true,
+		Data:    data,
+	}
+}
+
+// buildFetchResponse builds response from HTTP fetch result
+func (h *RenderHandler) buildFetchResponse(result *fetcher.FetchResult, parseResult *parser.ParseResult) *types.RenderResponse {
+	data := &types.RenderData{
+		StatusCode:    result.StatusCode,
+		FinalURL:      result.FinalURL,
+		RedirectURL:   result.RedirectURL,
+		PageSizeBytes: result.PageSizeBytes,
+		RenderTime:    result.FetchTime,
+		HTML:          result.HTML,
+		XRobotsTag:    result.GetXRobotsTag(),
+	}
+
+	// Check for canonical in Link header
+	if canonical := result.GetCanonicalFromHeader(); canonical != "" {
+		data.CanonicalURL = canonical
+	}
+
+	// Add parsed content
+	if parseResult != nil {
+		h.applyParseResult(data, parseResult)
+	}
+
+	return &types.RenderResponse{
+		Success: true,
+		Data:    data,
+	}
+}
+
+// applyParseResult applies parsed content to render data
+func (h *RenderHandler) applyParseResult(data *types.RenderData, parseResult *parser.ParseResult) {
+	data.Title = parseResult.Title
+	data.MetaDescription = parseResult.MetaDescription
+	data.MetaRobots = parseResult.MetaRobots
+	data.H1 = parseResult.H1
+	data.H2 = parseResult.H2
+	data.H3 = parseResult.H3
+	data.WordCount = parseResult.WordCount
+	data.OpenGraph = parseResult.OpenGraph
+	data.StructuredData = parseResult.StructuredData
+
+	// New fields from extended extraction
+	data.BodyText = parseResult.BodyText
+	data.TextHtmlRatio = parseResult.TextHtmlRatio
+	data.HrefLangs = parseResult.HrefLangs
+	data.Links = parseResult.Links
+	data.Images = parseResult.Images
+	data.MetaIndexable = parseResult.MetaIndexable
+	data.MetaFollow = parseResult.MetaFollow
+
+	// Use canonical from HTML if not set from header
+	if data.CanonicalURL == "" {
+		data.CanonicalURL = parseResult.CanonicalURL
+	}
+}
+
+// handleRenderError converts render errors to response
+func (h *RenderHandler) handleRenderError(err error) *types.RenderResponse {
+	errMsg := err.Error()
+
+	if strings.Contains(errMsg, "context deadline exceeded") {
+		return &types.RenderResponse{
+			Success: false,
+			Error: &types.RenderError{
+				Code:    types.ErrRenderTimeout,
+				Message: "Render timeout exceeded",
+			},
+		}
+	}
+
+	if strings.Contains(errMsg, "net::ERR_NAME_NOT_RESOLVED") {
+		return &types.RenderResponse{
+			Success: false,
+			Error: &types.RenderError{
+				Code:    types.ErrDomainNotFound,
+				Message: "Domain not found - check URL for typos",
+			},
+		}
+	}
+
+	if strings.Contains(errMsg, "failed to capture status code") {
+		return &types.RenderResponse{
+			Success: false,
+			Error: &types.RenderError{
+				Code:    types.ErrDomainNotFound,
+				Message: "Domain not found - check URL for typos",
+			},
+		}
+	}
+
+	return &types.RenderResponse{
+		Success: false,
+		Error: &types.RenderError{
+			Code:    types.ErrRenderFailed,
+			Message: "Render failed: " + errMsg,
+		},
+	}
+}
+
+// handleFetchError converts fetch errors to response
+func (h *RenderHandler) handleFetchError(err error) *types.RenderResponse {
+	errMsg := err.Error()
+
+	if strings.Contains(errMsg, "context deadline exceeded") ||
+		strings.Contains(errMsg, "Client.Timeout") {
+		return &types.RenderResponse{
+			Success: false,
+			Error: &types.RenderError{
+				Code:    types.ErrRenderTimeout,
+				Message: "Fetch timeout exceeded",
+			},
+		}
+	}
+
+	if strings.Contains(errMsg, "no such host") {
+		return &types.RenderResponse{
+			Success: false,
+			Error: &types.RenderError{
+				Code:    types.ErrDomainNotFound,
+				Message: "Domain not found - check URL for typos",
+			},
+		}
+	}
+
+	return &types.RenderResponse{
+		Success: false,
+		Error: &types.RenderError{
+			Code:    types.ErrFetchFailed,
+			Message: "Fetch failed: " + errMsg,
+		},
+	}
+}
+
+// writeJSON writes a JSON response
+func (h *RenderHandler) writeJSON(w http.ResponseWriter, response *types.RenderResponse) {
+	w.Header().Set("Content-Type", "application/json")
+
+	if !response.Success {
+		// Set appropriate status code based on error
+		statusCode := http.StatusInternalServerError
+		if response.Error != nil {
+			switch response.Error.Code {
+			case types.ErrInvalidURL, types.ErrInvalidTimeout, types.ErrInvalidWaitEvent, types.ErrDomainNotFound:
+				statusCode = http.StatusBadRequest
+			case types.ErrRenderTimeout:
+				statusCode = http.StatusRequestTimeout
+			case types.ErrChromeUnavailable:
+				statusCode = http.StatusServiceUnavailable
+			}
+		}
+		w.WriteHeader(statusCode)
+	}
+
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		h.logger.Error("Failed to write response", zap.Error(err))
+	}
+}
+
+// writeError writes an error response
+func (h *RenderHandler) writeError(w http.ResponseWriter, statusCode int, code, message string) {
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(statusCode)
+
+	response := &types.RenderResponse{
+		Success: false,
+		Error: &types.RenderError{
+			Code:    code,
+			Message: message,
+		},
+	}
+
+	if err := json.NewEncoder(w).Encode(response); err != nil {
+		h.logger.Error("Failed to write error response", zap.Error(err))
+	}
+}
+
+// SSE publishing helpers - only publish if manager is set and request has ID
+func (h *RenderHandler) publishStarted(requestID, url string) {
+	if h.sseManager != nil && requestID != "" {
+		h.sseManager.PublishStarted(requestID, url)
+	}
+}
+
+func (h *RenderHandler) publishNavigating(requestID, url string) {
+	if h.sseManager != nil && requestID != "" {
+		h.sseManager.PublishNavigating(requestID, url)
+	}
+}
+
+func (h *RenderHandler) publishCapturing(requestID string, requestCount int) {
+	if h.sseManager != nil && requestID != "" {
+		h.sseManager.PublishCapturing(requestID, requestCount)
+	}
+}
+
+func (h *RenderHandler) publishParsing(requestID string) {
+	if h.sseManager != nil && requestID != "" {
+		h.sseManager.PublishParsing(requestID)
+	}
+}
+
+func (h *RenderHandler) publishComplete(requestID string, renderTime float64) {
+	if h.sseManager != nil && requestID != "" {
+		h.sseManager.PublishComplete(requestID, renderTime)
+	}
+}
+
+func (h *RenderHandler) publishError(requestID, code, message string) {
+	if h.sseManager != nil && requestID != "" {
+		h.sseManager.PublishError(requestID, code, message)
+	}
+}

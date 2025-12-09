@@ -1,0 +1,28 @@
+/* LinksModal Component Styles - Modal-specific only */
+
+/* Modal Body */
+.modalBody {
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* Column widths */
+.hrefCol {
+  width: 55%;
+}
+
+.textCol {
+  width: 45%;
+  color: var(--text-body);
+}
+
+/* Image tag badge */
+.imageTag {
+  display: inline-block;
+  padding: 2px 8px;
+  font-size: 10px;
+  font-weight: 600;
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+  border-radius: 4px;
+}

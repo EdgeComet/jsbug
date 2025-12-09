@@ -1,0 +1,74 @@
+/* Shared Data Table Styles */
+
+.dataTable {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.dataTable th {
+  text-align: left;
+  padding: 12px 16px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-light);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.dataTable td {
+  padding: 10px 16px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border-light);
+  vertical-align: top;
+}
+
+.dataTable tbody tr:hover {
+  background: var(--bg-primary);
+}
+
+/* Diff row highlighting */
+.rowAdded {
+  background: var(--success-light) !important;
+}
+
+.rowAdded:hover {
+  background: var(--success-light) !important;
+  filter: brightness(0.98);
+}
+
+.rowRemoved {
+  background: var(--error-light) !important;
+}
+
+.rowRemoved:hover {
+  background: var(--error-light) !important;
+  filter: brightness(0.98);
+}
+
+/* Empty message row */
+.emptyMessage {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 40px 16px !important;
+}
+
+/* Common cell variants */
+.cellMuted {
+  color: var(--text-dim);
+  font-style: italic;
+}
+
+.cellBreakAll {
+  word-break: break-all;
+  overflow: hidden;
+}
+
+.cellBreakWord {
+  word-break: break-word;
+}

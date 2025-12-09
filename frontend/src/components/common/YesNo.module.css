@@ -1,0 +1,13 @@
+/* YesNo Component Styles */
+
+.yesNo {
+  font-weight: 500;
+}
+
+.positive {
+  color: var(--success);
+}
+
+.negative {
+  color: var(--error);
+}

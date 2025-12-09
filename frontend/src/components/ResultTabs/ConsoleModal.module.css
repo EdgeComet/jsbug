@@ -1,0 +1,93 @@
+/* ConsoleModal Component Styles - Modal-specific only */
+
+/* Modal Body */
+.modalBody {
+  flex: 1;
+  overflow-y: auto;
+  background: var(--bg-white);
+}
+
+/* Console Entries */
+.consoleEntry {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--border-light);
+  font-family: var(--font-mono);
+  font-size: 13px;
+}
+
+.consoleEntry:last-child {
+  border-bottom: none;
+}
+
+.entryIcon {
+  flex-shrink: 0;
+  width: 18px;
+  text-align: center;
+  line-height: 1.5;
+}
+
+.entryMessage {
+  flex: 1;
+  word-break: break-word;
+  white-space: pre-wrap;
+  line-height: 1.5;
+}
+
+.entryTime {
+  flex-shrink: 0;
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+/* Entry Level Variants */
+.entryLog {
+  background: transparent;
+}
+
+.entryLog .entryIcon {
+  color: var(--text-muted);
+}
+
+.entryLog .entryMessage {
+  color: var(--text-body);
+}
+
+.entryLog .entryTime {
+  color: var(--text-muted);
+}
+
+.entryWarn {
+  background: var(--warning-light);
+}
+
+.entryWarn .entryIcon {
+  color: var(--warning);
+}
+
+.entryWarn .entryMessage {
+  color: var(--text-dark);
+}
+
+.entryWarn .entryTime {
+  color: var(--warning);
+}
+
+.entryError {
+  background: var(--error-light);
+}
+
+.entryError .entryIcon {
+  color: var(--error);
+}
+
+.entryError .entryMessage {
+  color: var(--text-dark);
+}
+
+.entryError .entryTime {
+  color: var(--error);
+}
+

@@ -1,0 +1,41 @@
+/* HTMLModal Component Styles - Modal-specific only */
+
+/* Size info in title */
+.sizeInfo {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+/* Modal Body */
+.modalBody {
+  flex: 1;
+  overflow: auto;
+  background: #fafafa;
+}
+
+/* Code Container */
+.codeContainer {
+  margin: 0;
+  padding: 16px 24px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre-wrap;
+  word-break: break-word;
+  color: var(--text-body);
+}
+
+.codeContainer code {
+  font-family: inherit;
+}
+
+/* Pre/code styles */
+.codeContainer pre {
+  margin: 0 !important;
+  padding: 0 !important;
+  background: transparent !important;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+

@@ -1,0 +1,313 @@
+/* ConfigModal Component Styles - Modal-specific only */
+
+/* Modal Content */
+.modalContent {
+  padding: 14px;
+}
+
+/* Config Columns Layout */
+.configColumns {
+  display: flex;
+  gap: 0;
+}
+
+.configColumn {
+  flex: 1;
+  min-width: 0;
+}
+
+.configColumnHeader {
+  padding: 10px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+}
+
+.configColumnJsEnabled {
+  background: linear-gradient(135deg, rgba(255, 107, 74, 0.12), rgba(255, 140, 66, 0.08));
+  border: 1px solid rgba(255, 107, 74, 0.25);
+  color: var(--accent-coral);
+}
+
+.configColumnJsDisabled {
+  background: linear-gradient(135deg, rgba(14, 165, 233, 0.12), rgba(2, 132, 199, 0.08));
+  border: 1px solid rgba(14, 165, 233, 0.25);
+  color: var(--electric-blue);
+}
+
+.columnTitle {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.configColumnBody {
+  padding: 0;
+}
+
+.configDivider {
+  width: 1px;
+  background: var(--border-light);
+  margin: 0 24px;
+}
+
+/* Config Row */
+.configRow {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.configRow:last-child {
+  margin-bottom: 0;
+}
+
+.configLabel {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-body);
+}
+
+/* Config Select */
+.configSelect {
+  width: 100%;
+  padding: 10px 36px 10px 12px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-body);
+  background: var(--bg-white);
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='%2364748B' viewBox='0 0 16 16'%3E%3Cpath d='M7.247 11.14 2.451 5.658C1.885 5.013 2.345 4 3.204 4h9.592a1 1 0 0 1 .753 1.659l-4.796 5.48a1 1 0 0 1-1.506 0z'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  background-size: 12px;
+  transition: all var(--transition-fast);
+}
+
+.configSelect:hover {
+  border-color: var(--border-medium);
+}
+
+.configSelect:focus {
+  outline: none;
+  border-color: var(--electric-blue);
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+}
+
+.configSelect:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  background-color: var(--bg-secondary);
+}
+
+/* Config Input */
+.configInput {
+  width: 100%;
+  padding: 10px 12px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-body);
+  background: var(--bg-white);
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  transition: all var(--transition-fast);
+}
+
+.configInput:hover {
+  border-color: var(--border-medium);
+}
+
+.configInput:focus {
+  outline: none;
+  border-color: var(--electric-blue);
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+}
+
+.configInput::placeholder {
+  color: var(--text-dim);
+}
+
+.configInputError {
+  border-color: #ef4444;
+}
+
+.configInputError:focus {
+  border-color: #ef4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.1);
+}
+
+/* Googlebot Warning */
+.googlebotWarning {
+  font-size: 11px;
+  color: #ef4444;
+  padding: 8px 10px;
+  background: rgba(239, 68, 68, 0.08);
+  border: 1px solid rgba(239, 68, 68, 0.2);
+  border-radius: 4px;
+}
+
+/* Config Row Disabled */
+.configRowDisabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.configRowDisabled .configLabel {
+  color: var(--text-dim);
+}
+
+/* Disabled state for controls */
+.disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+/* Segmented Control */
+.segmentedControl {
+  display: inline-flex;
+  width: fit-content;
+  border: 1px solid var(--border-medium);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.segment {
+  padding: 6px 16px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: var(--bg-white);
+  border: none;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.segment:first-child {
+  border-right: 1px solid var(--border-medium);
+}
+
+.segment:hover:not(.segmentOn):not(.segmentOff) {
+  background: var(--bg-secondary);
+}
+
+.segmentOn {
+  background: var(--accent-coral);
+  color: white;
+}
+
+.segmentOff {
+  background: #64748b;
+  color: white;
+}
+
+/* Timeout Control */
+.timeoutControl {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.timeoutSlider {
+  flex: 1;
+  height: 6px;
+  appearance: none;
+  background: var(--bg-tertiary);
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.timeoutSlider::-webkit-slider-thumb {
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  background: var(--electric-blue);
+  border-radius: 50%;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(14, 165, 233, 0.3);
+  transition: all var(--transition-fast);
+}
+
+.timeoutSlider::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+}
+
+.timeoutSlider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  background: var(--electric-blue);
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+}
+
+.timeoutValue {
+  min-width: 40px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-body);
+  text-align: right;
+}
+
+/* Checkbox Group */
+.checkboxGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.checkboxInline {
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.checkboxItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.checkboxItem input[type="checkbox"] {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--electric-blue);
+  cursor: pointer;
+}
+
+.checkboxLabel {
+  font-size: 12px;
+  color: var(--text-body);
+}
+
+.checkboxLocked {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+.checkboxLocked input[type="checkbox"] {
+  cursor: not-allowed;
+}
+
+.checkboxLocked .checkboxLabel {
+  color: var(--text-muted);
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+  .configColumns {
+    flex-direction: column;
+  }
+
+  .configDivider {
+    width: 100%;
+    height: 1px;
+    margin: 24px 0;
+  }
+}

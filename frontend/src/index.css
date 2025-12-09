@@ -1,0 +1,138 @@
+/* jsbug - JS Rendering Debugger Styles */
+/* CSS Modules Only - Tailwind CSS Removed */
+
+/* ========================================
+   CSS Variables (Design System)
+   ======================================== */
+:root {
+  /* Light Backgrounds */
+  --bg-primary: #F8FAFC;
+  --bg-secondary: #EEF2F7;
+  --bg-tertiary: #E2E8F0;
+  --bg-white: #FFFFFF;
+
+  /* Dark Accents */
+  --dark-primary: #0A1628;
+  --dark-secondary: #152238;
+  --dark-tertiary: #1E3A5F;
+
+  /* Accent Colors */
+  --accent-coral: #FF6B4A;
+  --accent-coral-dark: #E55A3A;
+  --accent-orange: #FF8C42;
+  --electric-blue: #0EA5E9;
+  --electric-blue-dark: #0284C7;
+
+  /* Text Colors */
+  --text-dark: #0F172A;
+  --text-body: #334155;
+  --text-muted: #64748B;
+  --text-dim: #94A3B8;
+  --text-light: #F1F5F9;
+
+  /* Status Colors */
+  --success: #10B981;
+  --success-light: #D1FAE5;
+  --warning: #F59E0B;
+  --warning-light: #FEF3C7;
+  --warning-lighter: #F5F4EF;
+  --error: #EF4444;
+  --error-light: #FEE2E2;
+
+  /* Borders */
+  --border-light: #E2E8F0;
+  --border-medium: #CBD5E1;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.08);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.1);
+  --shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.12);
+
+  /* Typography */
+  --font-mono: 'JetBrains Mono', 'Fira Code', 'SF Mono', Consolas, monospace;
+
+  /* Transitions */
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.3s ease;
+
+  /* Resource Type Colors */
+  --type-document: #3B82F6;
+  --type-script: #F59E0B;
+  --type-stylesheet: #8B5CF6;
+  --type-image: #22C55E;
+  --type-font: #EC4899;
+  --type-xhr: #06B6D4;
+  --type-other: #6B7280;
+}
+
+/* ========================================
+   Base Styles
+   ======================================== */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--text-body);
+  background: var(--bg-primary);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+#root {
+  min-height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ========================================
+   Animations
+   ======================================== */
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+@keyframes progress {
+  0% { width: 0%; }
+  100% { width: 100%; }
+}
+
+/* ========================================
+   Global Diff Highlighting Utilities
+   ======================================== */
+.diff-highlight-changed {
+  border-left: 4px solid var(--accent-coral);
+  padding-left: 12px;
+  background: rgba(255, 107, 74, 0.08) !important;
+}
+
+.diff-highlight {
+  border-left: 3px solid var(--electric-blue);
+  padding-left: 13px;
+  background: rgba(14, 165, 233, 0.03);
+}
+
+.diff-added {
+  background: var(--success-light);
+  color: var(--success);
+}
+
+.diff-missing {
+  background: var(--error-light);
+  color: var(--error);
+}

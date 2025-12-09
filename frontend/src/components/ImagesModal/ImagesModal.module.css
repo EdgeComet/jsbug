@@ -1,0 +1,36 @@
+/* ImagesModal Component Styles - Modal-specific only */
+
+/* Modal Body */
+.modalBody {
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* Column widths */
+.srcCol {
+  width: 45%;
+}
+
+.altCol {
+  width: 35%;
+  color: var(--text-body);
+}
+
+.sizeCol {
+  width: 20%;
+  color: var(--text-muted);
+  font-family: var(--font-mono);
+  font-size: 12px;
+}
+
+/* In-link tag badge */
+.inLinkTag {
+  display: inline-block;
+  padding: 2px 8px;
+  margin-right: 6px;
+  font-size: 10px;
+  font-weight: 600;
+  background: var(--bg-tertiary);
+  color: var(--text-muted);
+  border-radius: 4px;
+}

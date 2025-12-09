@@ -1,0 +1,25 @@
+.empty {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.added {
+  background: var(--success-light);
+  color: var(--success);
+  padding: 1px 4px;
+  border-radius: 3px;
+}
+
+.missing {
+  background: var(--error-light);
+  color: var(--error);
+  padding: 1px 4px;
+  border-radius: 3px;
+  text-decoration: line-through;
+}

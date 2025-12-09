@@ -1,0 +1,21 @@
+server:
+  host: "0.0.0.0"
+  port: 9301
+  read_timeout: 30
+  write_timeout: 30
+  cors_origins:
+    - "*"
+
+chrome:
+  executable_path: ""
+  headless: true
+  disable_gpu: true
+  no_sandbox: false
+  timeout_default: 15
+  timeout_max: 60
+  viewport_width: 1920
+  viewport_height: 1080
+
+logging:
+  level: "info"
+  format: "console"

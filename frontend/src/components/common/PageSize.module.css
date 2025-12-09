@@ -1,0 +1,61 @@
+.pageSize {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 500;
+}
+
+.clickable {
+  cursor: pointer;
+}
+
+.clickable > span:first-child {
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-underline-offset: 2px;
+}
+
+.clickable:hover > span:first-child {
+  text-decoration-style: solid;
+}
+
+/* 0 bytes */
+.zero {
+  color: #94a3b8;
+}
+
+/* <200kb - Excellent */
+.excellent {
+  color: #16a34a;
+}
+
+/* 200-500kb - Moderate */
+.moderate {
+  color: #ca8a04;
+}
+
+/* 500-1000kb - Warning */
+.warning {
+  color: #ea580c;
+}
+
+/* >1000kb - Critical */
+.critical {
+  color: #dc2626;
+}
+
+.diffBadge {
+  margin-left: 6px;
+  font-size: 13px;
+  opacity: 0.85;
+}
+
+.dangerIcon {
+  display: inline-flex;
+  align-items: center;
+}
+
+.dangerIcon svg {
+  width: 14px;
+  height: 14px;
+}

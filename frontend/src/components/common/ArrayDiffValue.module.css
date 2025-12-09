@@ -1,0 +1,79 @@
+.empty {
+  color: var(--text-muted);
+  font-style: italic;
+}
+
+.added {
+  background: var(--success-light);
+  color: var(--success);
+  padding: 1px 4px;
+  margin-left: -4px;
+  border-radius: 3px;
+}
+
+.missing {
+  background: var(--error-light);
+  color: var(--error);
+  padding: 1px 4px;
+  margin-left: -4px;
+  border-radius: 3px;
+  text-decoration: line-through;
+}
+
+/* Line numbers via CSS counters */
+.numbered {
+  counter-reset: line;
+}
+
+.numbered > span {
+  display: flex;
+  align-items: baseline;
+}
+
+.numbered > span::before {
+  counter-increment: line;
+  content: counter(line) ".";
+  color: var(--text-muted);
+  margin-right: 8px;
+  min-width: 20px;
+  text-align: right;
+  flex-shrink: 0;
+  font-size: 0.85em;
+}
+
+/* View more button */
+.viewMore {
+  background: none;
+  border: none;
+  color: var(--electric-blue);
+  cursor: pointer;
+  padding: 2px 0;
+  font-size: 0.9em;
+  margin-top: 4px;
+}
+
+.viewMore:hover {
+  color: var(--electric-blue-dark);
+  text-decoration: underline;
+}
+
+/* Summary line */
+.summary {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 6px;
+  font-size: 13px;
+}
+
+.summaryAdded,
+.summaryRemoved {
+  font-weight: 600;
+}
+
+.summaryAdded {
+  color: var(--success);
+}
+
+.summaryRemoved {
+  color: var(--error);
+}

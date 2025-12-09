@@ -1,0 +1,23 @@
+/* FilterInput Component Styles */
+
+.filterInput {
+  flex: 1;
+  padding: 10px 14px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--text-body);
+  background: var(--bg-white);
+  border: 1px solid var(--border-light);
+  border-radius: 6px;
+  transition: all var(--transition-fast);
+}
+
+.filterInput:focus {
+  outline: none;
+  border-color: var(--electric-blue);
+  box-shadow: 0 0 0 3px rgba(14, 165, 233, 0.1);
+}
+
+.filterInput::placeholder {
+  color: var(--text-dim);
+}

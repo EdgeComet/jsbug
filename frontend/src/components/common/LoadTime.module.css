@@ -1,0 +1,52 @@
+.loadTime {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 500;
+}
+
+/* 0ms */
+.zero {
+  color: #94a3b8;
+}
+
+/* <0.7s - Excellent */
+.excellent {
+  color: #16a34a;
+}
+
+/* 0.7-1s - Good */
+.good {
+  color: #65a30d;
+}
+
+/* 1-2s - Moderate */
+.moderate {
+  color: #ca8a04;
+}
+
+/* 2-4s - Slow */
+.slow {
+  color: #ea580c;
+}
+
+/* >4s - Critical */
+.critical {
+  color: #dc2626;
+}
+
+.dangerIcon {
+  display: inline-flex;
+  align-items: center;
+}
+
+.dangerIcon svg {
+  width: 14px;
+  height: 14px;
+}
+
+.diffBadge {
+  margin-left: 6px;
+  font-size: 13px;
+  opacity: 0.85;
+}

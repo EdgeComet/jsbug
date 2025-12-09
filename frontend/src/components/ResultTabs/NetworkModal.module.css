@@ -1,0 +1,115 @@
+/* NetworkModal Component Styles - Modal-specific only */
+
+/* Modal Body */
+.modalBody {
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* Network Table */
+.networkTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.networkTable th {
+  text-align: left;
+  padding: 12px 16px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-muted);
+  background: var(--bg-secondary);
+  border-bottom: 1px solid var(--border-light);
+  position: sticky;
+  top: 0;
+  z-index: 1;
+}
+
+.sortableHeader {
+  cursor: pointer;
+  user-select: none;
+  transition: all var(--transition-fast);
+}
+
+.sortableHeader:hover {
+  color: var(--text-body);
+}
+
+.networkTable th.sortableHeaderActive {
+  background: #E0F2FE;
+  color: var(--electric-blue);
+}
+
+.headerContent {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.sortIcon,
+.sortIconHidden {
+  display: inline-flex;
+  align-items: center;
+}
+
+.sortIcon {
+  color: var(--electric-blue);
+}
+
+.sortIconHidden {
+  visibility: hidden;
+}
+
+.networkTable td {
+  padding: 10px 16px;
+  font-size: 13px;
+  border-bottom: 1px solid var(--border-light);
+  vertical-align: middle;
+}
+
+.networkTable tbody tr:nth-child(even) {
+  background: var(--bg-primary);
+}
+
+.requestRow:hover {
+  background: var(--bg-secondary);
+}
+
+.requestBlocked {
+  opacity: 0.6;
+  background: var(--bg-secondary);
+}
+
+.requestBlocked:hover {
+  background: var(--bg-secondary);
+}
+
+.requestFailed {
+  background: var(--error-light);
+}
+
+.requestFailed:hover {
+  background: var(--error-light);
+}
+
+.requestUrl {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-body);
+  word-break: break-all;
+}
+
+.requestUrlTruncated {
+  max-width: 400px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.emptyMessage {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 40px 16px !important;
+}

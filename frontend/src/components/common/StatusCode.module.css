@@ -1,0 +1,28 @@
+.statusCode {
+  font-weight: 600;
+}
+
+/* 2xx - Success */
+.success {
+  color: #16a34a;
+}
+
+/* 3xx - Redirect */
+.redirect {
+  color: #ca8a04;
+}
+
+/* 4xx - Client Error */
+.clientError {
+  color: #ea580c;
+}
+
+/* 5xx - Server Error */
+.serverError {
+  color: #dc2626;
+}
+
+/* Network/SSL - No response */
+.networkError {
+  color: #dc2626;
+}
