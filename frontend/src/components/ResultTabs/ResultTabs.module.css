@@ -161,6 +161,12 @@
   background: var(--bg-secondary);
 }
 
+.emptyMessage {
+  text-align: center;
+  color: var(--text-muted);
+  padding: 40px 16px !important;
+}
+
 .networkFilters {
   display: flex;
   gap: 12px;
@@ -576,4 +582,11 @@
 
 .htmlSizeCritical {
   color: var(--error);
+}
+
+/* Responsive */
+@media (max-width: 992px) {
+  .resultTabs {
+    margin-bottom: 0;
+  }
 }

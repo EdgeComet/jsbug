@@ -93,6 +93,13 @@ export function NetworkTab({ data }: NetworkTabProps) {
           </tr>
         </thead>
         <tbody>
+          {resourceTypeSummaries.length === 0 && (
+            <tr>
+              <td colSpan={4} className={styles.emptyMessage}>
+                No network request detected
+              </td>
+            </tr>
+          )}
           {resourceTypeSummaries.map((typeSummary) => (
             <tr
               key={typeSummary.type}

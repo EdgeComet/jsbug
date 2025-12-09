@@ -24,6 +24,8 @@ interface PanelProps {
   data?: PanelData;
   compareData?: PanelData;
   jsEnabled: boolean;
+  robotsAllowed?: boolean;
+  robotsLoading?: boolean;
 }
 
 export function Panel({
@@ -33,6 +35,8 @@ export function Panel({
   data,
   compareData,
   jsEnabled,
+  robotsAllowed,
+  robotsLoading,
 }: PanelProps) {
   const [linksModalOpen, setLinksModalOpen] = useState(false);
   const [linksModalFilter, setLinksModalFilter] = useState<LinkFilterType>('all');
@@ -126,7 +130,7 @@ export function Panel({
           <TechnicalCard data={technical} compareData={jsEnabled ? compareData?.technical : undefined} onOpenHTMLModal={content.html ? () => setHtmlModalOpen(true) : undefined} />
           {isSuccess && (
             <>
-              <IndexationCard data={indexation} compareData={jsEnabled ? compareData?.indexation : undefined} />
+              <IndexationCard data={indexation} compareData={jsEnabled ? compareData?.indexation : undefined} robotsAllowed={robotsAllowed} robotsLoading={robotsLoading} currentUrl={technical.finalUrl} />
               <ContentCard data={content} compareData={jsEnabled ? compareData?.content : undefined} onOpenBodyTextModal={() => setBodyTextModalOpen(true)} onOpenWordDiffModal={(scrollTo) => { setWordDiffScrollTo(scrollTo); setWordDiffModalOpen(true); }} />
               <LinksCard data={links} compareData={jsEnabled ? compareData?.links : undefined} onOpenModal={handleOpenLinksModal} onOpenDiffModal={handleOpenLinksDiffModal} />
               <ImagesCard data={images} compareData={jsEnabled ? compareData?.images : undefined} onOpenModal={handleOpenImagesModal} onOpenDiffModal={handleOpenImagesDiffModal} />

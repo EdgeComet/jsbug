@@ -18,12 +18,12 @@ function getKey(entry: HrefLangEntry): string {
 
 export function HrefLangDiffValue({ value, compareValue }: HrefLangDiffValueProps) {
   if (value.length === 0 && (!compareValue || compareValue.length === 0)) {
-    return <span className={styles.empty}>None</span>;
+    return <span className={styles.empty}>empty</span>;
   }
 
   if (!compareValue) {
     if (value.length === 0) {
-      return <span className={styles.empty}>None</span>;
+      return <span className={styles.empty}>empty</span>;
     }
     return (
       <div className={styles.list}>

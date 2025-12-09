@@ -6,6 +6,7 @@ import { Header } from './components/Header/Header'
 import { Panel } from './components/Panel/Panel'
 import { ConfigModal } from './components/ConfigModal/ConfigModal'
 import { useRenderPanel } from './hooks/useRenderPanel'
+import { useRobots } from './hooks/useRobots'
 import styles from './App.module.css'
 
 function AppContent() {
@@ -18,6 +19,7 @@ function AppContent() {
 
   const leftPanel = useRenderPanel()
   const rightPanel = useRenderPanel()
+  const robots = useRobots()
 
   const isAnalyzing = leftPanel.isLoading || rightPanel.isLoading
 
@@ -47,10 +49,12 @@ function AppContent() {
     setHasAnalyzed(true)
     leftPanel.reset()
     rightPanel.reset()
+    robots.reset()
 
-    // Fire both requests simultaneously
+    // Fire all requests simultaneously (2 renders + 1 robots)
     leftPanel.render(url, effectiveConfig.left)
     rightPanel.render(url, effectiveConfig.right)
+    robots.check(url)
   }
 
   return (
@@ -92,6 +96,8 @@ function AppContent() {
               data={leftPanel.data ?? undefined}
               compareData={bothPanelsSuccess ? rightPanel.data ?? undefined : undefined}
               jsEnabled={config.left.jsEnabled}
+              robotsAllowed={robots.data?.isAllowed}
+              robotsLoading={robots.isLoading}
             />
 
             <div className={styles.panelDivider}>
@@ -105,6 +111,8 @@ function AppContent() {
               data={rightPanel.data ?? undefined}
               compareData={bothPanelsSuccess ? leftPanel.data ?? undefined : undefined}
               jsEnabled={config.right.jsEnabled}
+              robotsAllowed={robots.data?.isAllowed}
+              robotsLoading={robots.isLoading}
             />
           </div>
         </main>

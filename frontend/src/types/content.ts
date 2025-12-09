@@ -16,6 +16,8 @@ export interface IndexationData {
   xRobotsTag?: string;
   isIndexable: boolean;
   indexabilityReason: string;
+  robotsAllowed?: boolean;        // robots.txt allows crawling (undefined = loading)
+  robotsLoading?: boolean;        // robots.txt check is in progress
 }
 
 export interface Link {

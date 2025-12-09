@@ -167,10 +167,6 @@
   .headerContent {
     gap: 16px;
   }
-
-  .compareText {
-    display: none;
-  }
 }
 
 @media (max-width: 992px) {
@@ -178,19 +174,8 @@
     padding: 12px 20px;
   }
 
-  .headerContent {
-    flex-wrap: wrap;
-  }
-
   .headerUrl {
-    order: 3;
-    flex: 1 1 100%;
     max-width: none;
-    margin-top: 12px;
-  }
-
-  .headerActions {
-    margin-left: auto;
   }
 }
 
