@@ -8,15 +8,20 @@ interface TechnicalCardProps {
   data: TechnicalData;
   compareData?: TechnicalData;
   onOpenHTMLModal?: () => void;
+  userAgent?: string;
+  onRetryWithBrowserUA?: () => void;
 }
 
-export function TechnicalCard({ data, compareData, onOpenHTMLModal }: TechnicalCardProps) {
+export function TechnicalCard({ data, compareData, onOpenHTMLModal, userAgent, onRetryWithBrowserUA }: TechnicalCardProps) {
   const hasError = data.errorMessage !== undefined;
   const isSuccess = data.statusCode === 200;
   const isRedirect =
     data.statusCode !== null &&
     data.statusCode >= 300 &&
     data.statusCode < 400;
+  const isGooglebot = userAgent === 'googlebot' || userAgent === 'googlebot-mobile';
+  const isClientError = data.statusCode !== null && data.statusCode >= 400 && data.statusCode < 500;
+  const showGooglebotWarning = isClientError && isGooglebot;
 
   return (
     <div
@@ -32,6 +37,17 @@ export function TechnicalCard({ data, compareData, onOpenHTMLModal }: TechnicalC
             <StatusCode code={data.statusCode} />
           </span>
         </div>
+
+        {showGooglebotWarning && (
+          <div className={styles.googlebotWarning}>
+            Requests with Googlebot user agents often get blocked.
+            {onRetryWithBrowserUA && (
+              <button className={styles.retryButton} onClick={onRetryWithBrowserUA}>
+                Retry with browser UA
+              </button>
+            )}
+          </div>
+        )}
 
         {data.errorMessage && (
           <div className={`${styles.resultRow} ${styles.errorRow}`}>

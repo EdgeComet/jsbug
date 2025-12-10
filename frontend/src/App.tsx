@@ -10,7 +10,7 @@ import { useRobots } from './hooks/useRobots'
 import styles from './App.module.css'
 
 function AppContent() {
-  const { config } = useConfig()
+  const { config, updateLeftConfig, updateRightConfig } = useConfig()
   const [url, setUrl] = useState('https://example.com/')
   const [isUrlValid, setIsUrlValid] = useState(true)
   const [isConfigOpen, setIsConfigOpen] = useState(false)
@@ -57,6 +57,16 @@ function AppContent() {
     robots.check(url)
   }
 
+  const handleRetryWithBrowserUA = (side: 'left' | 'right') => {
+    const updateFn = side === 'left' ? updateLeftConfig : updateRightConfig
+    updateFn({ userAgent: 'chrome-mobile' })
+    const newConfig: AppConfig = {
+      ...config,
+      [side]: { ...config[side], userAgent: 'chrome-mobile' },
+    }
+    handleCompare(newConfig)
+  }
+
   return (
     <div className={styles.app}>
       <Header
@@ -98,6 +108,7 @@ function AppContent() {
               jsEnabled={config.left.jsEnabled}
               robotsAllowed={robots.data?.isAllowed}
               robotsLoading={robots.isLoading}
+              onRetryWithBrowserUA={() => handleRetryWithBrowserUA('left')}
             />
 
             <div className={styles.panelDivider}>
@@ -113,6 +124,7 @@ function AppContent() {
               jsEnabled={config.right.jsEnabled}
               robotsAllowed={robots.data?.isAllowed}
               robotsLoading={robots.isLoading}
+              onRetryWithBrowserUA={() => handleRetryWithBrowserUA('right')}
             />
           </div>
         </main>

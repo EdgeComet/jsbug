@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Icon } from '../common/Icon';
+import { useConfig } from '../../context/ConfigContext';
 import type { PanelData } from '../../hooks/useRenderPanel';
 import { PanelHeader } from './PanelHeader';
 import { TechnicalCard } from './TechnicalCard';
@@ -26,6 +27,7 @@ interface PanelProps {
   jsEnabled: boolean;
   robotsAllowed?: boolean;
   robotsLoading?: boolean;
+  onRetryWithBrowserUA?: () => void;
 }
 
 export function Panel({
@@ -37,7 +39,10 @@ export function Panel({
   jsEnabled,
   robotsAllowed,
   robotsLoading,
+  onRetryWithBrowserUA,
 }: PanelProps) {
+  const { config } = useConfig();
+  const panelConfig = side === 'left' ? config.left : config.right;
   const [linksModalOpen, setLinksModalOpen] = useState(false);
   const [linksModalFilter, setLinksModalFilter] = useState<LinkFilterType>('all');
   const [linksModalDiffType, setLinksModalDiffType] = useState<'all' | 'added' | 'removed'>('all');
@@ -127,7 +132,7 @@ export function Panel({
 
       <div className={styles.resultsSection}>
         <div className={styles.resultCards}>
-          <TechnicalCard data={technical} compareData={jsEnabled ? compareData?.technical : undefined} onOpenHTMLModal={content.html ? () => setHtmlModalOpen(true) : undefined} />
+          <TechnicalCard data={technical} compareData={jsEnabled ? compareData?.technical : undefined} onOpenHTMLModal={content.html ? () => setHtmlModalOpen(true) : undefined} userAgent={panelConfig.userAgent} onRetryWithBrowserUA={onRetryWithBrowserUA} />
           {isSuccess && (
             <>
               <IndexationCard data={indexation} compareData={jsEnabled ? compareData?.indexation : undefined} robotsAllowed={robotsAllowed} robotsLoading={robotsLoading} currentUrl={technical.finalUrl} />
