@@ -1,4 +1,4 @@
-export type UserAgent = 'googlebot' | 'googlebot-mobile' | 'chrome' | 'chrome-mobile' | 'bingbot' | 'custom';
+export type UserAgent = 'googlebot' | 'googlebot-mobile' | 'chrome' | 'chrome-mobile' | 'bingbot' | 'claudebot' | 'claude-user' | 'gptbot' | 'chatgpt-user' | 'custom';
 export type WaitEvent = 'DOMContentLoaded' | 'load' | 'networkIdle' | 'networkAlmostIdle';
 
 export interface PanelConfig {

@@ -33,6 +33,15 @@ const userAgentGroups = [
     ],
   },
   {
+    label: 'AI Bots',
+    options: [
+      { value: 'claudebot', label: 'ClaudeBot' },
+      { value: 'claude-user', label: 'Claude-User' },
+      { value: 'gptbot', label: 'GPTBot' },
+      { value: 'chatgpt-user', label: 'ChatGPT-User' },
+    ],
+  },
+  {
     label: 'Other',
     options: [
       { value: 'custom', label: 'Custom...' },
