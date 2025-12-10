@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 )
 
 func TestLoad_ValidConfig(t *testing.T) {
@@ -245,10 +246,13 @@ func TestValidate_ValidConfig(t *testing.T) {
 			Port: 8080,
 		},
 		Chrome: ChromeConfig{
-			TimeoutDefault: 15,
-			TimeoutMax:     60,
-			ViewportWidth:  1920,
-			ViewportHeight: 1080,
+			TimeoutDefault:    15,
+			TimeoutMax:        60,
+			ViewportWidth:     1920,
+			ViewportHeight:    1080,
+			PoolSize:          4,
+			WarmupTimeout:     10 * time.Second,
+			ShutdownTimeout:   30 * time.Second,
 		},
 		Logging: LoggingConfig{
 			Level:  "info",
@@ -298,4 +302,196 @@ func itoa(i int) string {
 		i /= 10
 	}
 	return result
+}
+
+// Pool configuration tests
+
+func TestLoad_PoolDefaults(t *testing.T) {
+	content := `
+server: {}
+chrome: {}
+logging: {}
+`
+	path := createTempConfig(t, content)
+	defer os.Remove(path)
+
+	cfg, err := Load(path)
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	if cfg.Chrome.PoolSize != defaultPoolSize {
+		t.Errorf("Chrome.PoolSize = %d, want default %d", cfg.Chrome.PoolSize, defaultPoolSize)
+	}
+	if cfg.Chrome.WarmupURL != defaultWarmupURL {
+		t.Errorf("Chrome.WarmupURL = %q, want default %q", cfg.Chrome.WarmupURL, defaultWarmupURL)
+	}
+	if cfg.Chrome.WarmupTimeout != defaultWarmupTimeout {
+		t.Errorf("Chrome.WarmupTimeout = %v, want default %v", cfg.Chrome.WarmupTimeout, defaultWarmupTimeout)
+	}
+	if cfg.Chrome.RestartAfterCount != defaultRestartAfterCount {
+		t.Errorf("Chrome.RestartAfterCount = %d, want default %d", cfg.Chrome.RestartAfterCount, defaultRestartAfterCount)
+	}
+	if cfg.Chrome.RestartAfterTime != defaultRestartAfterTime {
+		t.Errorf("Chrome.RestartAfterTime = %v, want default %v", cfg.Chrome.RestartAfterTime, defaultRestartAfterTime)
+	}
+	if cfg.Chrome.ShutdownTimeout != defaultShutdownTimeout {
+		t.Errorf("Chrome.ShutdownTimeout = %v, want default %v", cfg.Chrome.ShutdownTimeout, defaultShutdownTimeout)
+	}
+}
+
+func TestLoad_InvalidPoolSize(t *testing.T) {
+	// Note: pool_size=0 in YAML gets default value applied, so it's not invalid
+	// The direct Validate() test covers the pool_size=0 case
+	tests := []struct {
+		name     string
+		poolSize int
+	}{
+		{"pool_size negative", -1},
+		{"pool_size too high", 17},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			content := `
+server: {}
+chrome:
+  pool_size: ` + itoa(tt.poolSize) + `
+logging: {}
+`
+			path := createTempConfig(t, content)
+			defer os.Remove(path)
+
+			_, err := Load(path)
+			if err == nil {
+				t.Errorf("Load() expected error for pool_size %d, got nil", tt.poolSize)
+			}
+		})
+	}
+}
+
+func TestLoad_PoolConfigFromYAML(t *testing.T) {
+	content := `
+server: {}
+chrome:
+  pool_size: 8
+  warmup_url: "https://test.example.com/"
+  warmup_timeout: 15s
+  restart_after_count: 100
+  restart_after_time: 1h
+  shutdown_timeout: 45s
+logging: {}
+`
+	path := createTempConfig(t, content)
+	defer os.Remove(path)
+
+	cfg, err := Load(path)
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	if cfg.Chrome.PoolSize != 8 {
+		t.Errorf("Chrome.PoolSize = %d, want %d", cfg.Chrome.PoolSize, 8)
+	}
+	if cfg.Chrome.WarmupURL != "https://test.example.com/" {
+		t.Errorf("Chrome.WarmupURL = %q, want %q", cfg.Chrome.WarmupURL, "https://test.example.com/")
+	}
+	if cfg.Chrome.WarmupTimeout != 15*time.Second {
+		t.Errorf("Chrome.WarmupTimeout = %v, want %v", cfg.Chrome.WarmupTimeout, 15*time.Second)
+	}
+	if cfg.Chrome.RestartAfterCount != 100 {
+		t.Errorf("Chrome.RestartAfterCount = %d, want %d", cfg.Chrome.RestartAfterCount, 100)
+	}
+	if cfg.Chrome.RestartAfterTime != 1*time.Hour {
+		t.Errorf("Chrome.RestartAfterTime = %v, want %v", cfg.Chrome.RestartAfterTime, 1*time.Hour)
+	}
+	if cfg.Chrome.ShutdownTimeout != 45*time.Second {
+		t.Errorf("Chrome.ShutdownTimeout = %v, want %v", cfg.Chrome.ShutdownTimeout, 45*time.Second)
+	}
+}
+
+func TestLoad_PoolSizeEnvOverride(t *testing.T) {
+	content := `
+server: {}
+chrome:
+  pool_size: 4
+logging: {}
+`
+	path := createTempConfig(t, content)
+	defer os.Remove(path)
+
+	os.Setenv("JSBUG_POOL_SIZE", "8")
+	defer os.Unsetenv("JSBUG_POOL_SIZE")
+
+	cfg, err := Load(path)
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	if cfg.Chrome.PoolSize != 8 {
+		t.Errorf("Chrome.PoolSize = %d, want %d (from env)", cfg.Chrome.PoolSize, 8)
+	}
+}
+
+func TestValidate_ValidPoolConfig(t *testing.T) {
+	cfg := &Config{
+		Server: ServerConfig{
+			Port: 8080,
+		},
+		Chrome: ChromeConfig{
+			TimeoutDefault:    15,
+			TimeoutMax:        60,
+			ViewportWidth:     1920,
+			ViewportHeight:    1080,
+			PoolSize:          4,
+			WarmupURL:         "https://example.com/",
+			WarmupTimeout:     10 * time.Second,
+			RestartAfterCount: 50,
+			RestartAfterTime:  30 * time.Minute,
+			ShutdownTimeout:   30 * time.Second,
+		},
+		Logging: LoggingConfig{
+			Level:  "info",
+			Format: "json",
+		},
+	}
+
+	err := cfg.Validate()
+	if err != nil {
+		t.Errorf("Validate() error = %v, want nil", err)
+	}
+}
+
+func TestValidate_InvalidPoolSize(t *testing.T) {
+	tests := []struct {
+		name     string
+		poolSize int
+	}{
+		{"zero", 0},
+		{"negative", -1},
+		{"too_high", 17},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			cfg := &Config{
+				Server: ServerConfig{Port: 8080},
+				Chrome: ChromeConfig{
+					TimeoutDefault:    15,
+					TimeoutMax:        60,
+					ViewportWidth:     1920,
+					ViewportHeight:    1080,
+					PoolSize:          tt.poolSize,
+					WarmupTimeout:     10 * time.Second,
+					ShutdownTimeout:   30 * time.Second,
+				},
+				Logging: LoggingConfig{Level: "info", Format: "json"},
+			}
+
+			err := cfg.Validate()
+			if err == nil {
+				t.Errorf("Validate() expected error for pool_size %d, got nil", tt.poolSize)
+			}
+		})
+	}
 }

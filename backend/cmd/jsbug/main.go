@@ -8,7 +8,6 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
 
 	"go.uber.org/zap"
 
@@ -20,8 +19,6 @@ import (
 	"github.com/user/jsbug/internal/robots"
 	"github.com/user/jsbug/internal/server"
 )
-
-const shutdownTimeout = 30 * time.Second
 
 func main() {
 	configPath := flag.String("c", "config.yaml", "config file path")
@@ -44,27 +41,28 @@ func main() {
 	}
 	defer log.Sync()
 
-	// Initialize Chrome instance
-	var chromeInstance *chrome.Instance
-	var renderer *chrome.RendererV2
-
-	chromeInstance, err = chrome.New(chrome.InstanceConfig{
-		ExecutablePath: cfg.Chrome.ExecutablePath,
-		Headless:       cfg.Chrome.Headless,
-		DisableGPU:     cfg.Chrome.DisableGPU,
-		NoSandbox:      cfg.Chrome.NoSandbox,
-		ViewportWidth:  cfg.Chrome.ViewportWidth,
-		ViewportHeight: cfg.Chrome.ViewportHeight,
+	// Initialize Chrome pool
+	pool, err := chrome.NewChromePool(chrome.InstanceConfig{
+		ExecutablePath:    cfg.Chrome.ExecutablePath,
+		Headless:          true, // Always headless in production
+		DisableGPU:        cfg.Chrome.DisableGPU,
+		NoSandbox:         false, // Sandbox enabled for security
+		ViewportWidth:     cfg.Chrome.ViewportWidth,
+		ViewportHeight:    cfg.Chrome.ViewportHeight,
+		PoolSize:          cfg.Chrome.PoolSize,
+		WarmupURL:         cfg.Chrome.WarmupURL,
+		WarmupTimeout:     cfg.Chrome.WarmupTimeout,
+		RestartAfterCount: cfg.Chrome.RestartAfterCount,
+		RestartAfterTime:  cfg.Chrome.RestartAfterTime,
+		ShutdownTimeout:   cfg.Chrome.ShutdownTimeout,
 	}, log)
 
 	if err != nil {
-		log.Warn("Chrome initialization failed, JS rendering will be unavailable",
+		log.Fatal("Failed to initialize Chrome pool",
 			zap.Error(err),
 		)
-	} else {
-		defer chromeInstance.Close()
-		renderer = chrome.NewRendererV2(chromeInstance, log)
 	}
+	defer pool.Shutdown()
 
 	// Initialize HTTP fetcher (always available)
 	httpFetcher := fetcher.NewFetcher(log)
@@ -75,8 +73,8 @@ func main() {
 	// Create server (SSE manager is created internally)
 	srv := server.New(cfg, log)
 
-	// Create and configure render handler
-	renderHandler := server.NewRenderHandler(renderer, httpFetcher, htmlParser, cfg, log)
+	// Create and configure render handler with pool
+	renderHandler := server.NewRenderHandler(pool, httpFetcher, htmlParser, cfg, log)
 	renderHandler.SetSSEManager(srv.SSEManager())
 	srv.SetRenderHandler(renderHandler)
 
@@ -95,7 +93,7 @@ func main() {
 	log.Info("jsbug started",
 		zap.String("host", cfg.Server.Host),
 		zap.Int("port", cfg.Server.Port),
-		zap.Bool("chrome_available", chromeInstance != nil),
+		zap.Int("pool_size", cfg.Chrome.PoolSize),
 	)
 
 	// Wait for shutdown signal
@@ -103,14 +101,22 @@ func main() {
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 	<-quit
 
-	log.Info("Shutting down...")
+	log.Info("Shutdown signal received")
 
-	// Graceful shutdown
-	ctx, cancel := context.WithTimeout(context.Background(), shutdownTimeout)
+	// Graceful shutdown sequence:
+	// 1. Stop accepting new HTTP requests first
+	log.Info("Shutting down HTTP server...")
+	ctx, cancel := context.WithTimeout(context.Background(), cfg.Chrome.ShutdownTimeout)
 	defer cancel()
 
 	if err := srv.Shutdown(ctx); err != nil {
 		log.Error("Server shutdown error", zap.Error(err))
+	}
+
+	// 2. Then shutdown pool (in-flight renders should already be done)
+	log.Info("Shutting down Chrome pool...")
+	if err := pool.Shutdown(); err != nil {
+		log.Error("Pool shutdown error", zap.Error(err))
 	}
 
 	log.Info("jsbug stopped")

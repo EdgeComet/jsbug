@@ -17,12 +17,6 @@ import (
 	"github.com/user/jsbug/internal/types"
 )
 
-// Renderer interface for rendering pages
-type Renderer interface {
-	Render(ctx context.Context, opts chrome.RenderOptions) (*chrome.RenderResult, error)
-	IsAvailable() bool
-}
-
 // Fetcher interface for fetching pages
 type Fetcher interface {
 	Fetch(ctx context.Context, opts fetcher.FetchOptions) (*fetcher.FetchResult, error)
@@ -30,7 +24,7 @@ type Fetcher interface {
 
 // RenderHandler handles render API requests
 type RenderHandler struct {
-	renderer   Renderer
+	pool       *chrome.ChromePool
 	fetcher    Fetcher
 	parser     *parser.Parser
 	config     *config.Config
@@ -39,13 +33,13 @@ type RenderHandler struct {
 }
 
 // NewRenderHandler creates a new RenderHandler
-func NewRenderHandler(renderer Renderer, fetcher Fetcher, parser *parser.Parser, cfg *config.Config, logger *zap.Logger) *RenderHandler {
+func NewRenderHandler(pool *chrome.ChromePool, fetcher Fetcher, parser *parser.Parser, cfg *config.Config, logger *zap.Logger) *RenderHandler {
 	return &RenderHandler{
-		renderer: renderer,
-		fetcher:  fetcher,
-		parser:   parser,
-		config:   cfg,
-		logger:   logger,
+		pool:    pool,
+		fetcher: fetcher,
+		parser:  parser,
+		config:  cfg,
+		logger:  logger,
 	}
 }
 
@@ -144,16 +138,55 @@ func (h *RenderHandler) validateRequest(req *types.RenderRequest) *types.RenderE
 func (h *RenderHandler) handleJSRender(ctx context.Context, req *types.RenderRequest) *types.RenderResponse {
 	requestID := req.RequestID
 
-	if h.renderer == nil || !h.renderer.IsAvailable() {
-		h.publishError(requestID, types.ErrChromeUnavailable, "Chrome renderer is not available")
+	// Check if pool is available
+	if h.pool == nil {
+		h.publishError(requestID, types.ErrChromeUnavailable, "Chrome pool is not available")
 		return &types.RenderResponse{
 			Success: false,
 			Error: &types.RenderError{
 				Code:    types.ErrChromeUnavailable,
-				Message: "Chrome renderer is not available",
+				Message: "Chrome pool is not available",
 			},
 		}
 	}
+
+	// Acquire instance from pool
+	instance, err := h.pool.Acquire()
+	if err != nil {
+		if err == chrome.ErrNoInstanceAvailable {
+			h.publishError(requestID, types.ErrPoolExhausted, "Service unavailable, try again")
+			return &types.RenderResponse{
+				Success: false,
+				Error: &types.RenderError{
+					Code:    types.ErrPoolExhausted,
+					Message: "Service unavailable, try again",
+				},
+			}
+		}
+		if err == chrome.ErrPoolShuttingDown {
+			h.publishError(requestID, types.ErrPoolShuttingDown, "Service shutting down")
+			return &types.RenderResponse{
+				Success: false,
+				Error: &types.RenderError{
+					Code:    types.ErrPoolShuttingDown,
+					Message: "Service shutting down",
+				},
+			}
+		}
+		// Other error (e.g., restart failed)
+		h.publishError(requestID, types.ErrChromeUnavailable, err.Error())
+		return &types.RenderResponse{
+			Success: false,
+			Error: &types.RenderError{
+				Code:    types.ErrChromeUnavailable,
+				Message: err.Error(),
+			},
+		}
+	}
+	defer h.pool.Release(instance)
+
+	// Create renderer for this request
+	renderer := chrome.NewRendererV2(instance, h.logger)
 
 	// Publish started event
 	h.publishStarted(requestID, req.URL)
@@ -176,7 +209,7 @@ func (h *RenderHandler) handleJSRender(ctx context.Context, req *types.RenderReq
 	h.publishNavigating(requestID, req.URL)
 
 	// Render the page
-	result, err := h.renderer.Render(ctx, opts)
+	result, err := renderer.Render(ctx, opts)
 	if err != nil {
 		resp := h.handleRenderError(err)
 		if resp.Error != nil {
@@ -431,7 +464,7 @@ func (h *RenderHandler) writeJSON(w http.ResponseWriter, response *types.RenderR
 				statusCode = http.StatusBadRequest
 			case types.ErrRenderTimeout:
 				statusCode = http.StatusRequestTimeout
-			case types.ErrChromeUnavailable:
+			case types.ErrChromeUnavailable, types.ErrPoolExhausted, types.ErrPoolShuttingDown:
 				statusCode = http.StatusServiceUnavailable
 			}
 		}

@@ -12,6 +12,8 @@ const (
 	ErrFetchFailed       = "FETCH_FAILED"
 	ErrChromeUnavailable = "CHROME_UNAVAILABLE"
 	ErrDomainNotFound    = "DOMAIN_NOT_FOUND"
+	ErrPoolExhausted     = "POOL_EXHAUSTED"
+	ErrPoolShuttingDown  = "POOL_SHUTTING_DOWN"
 )
 
 // MaxBodyTextBytes is the maximum size for extracted body text (3MB)

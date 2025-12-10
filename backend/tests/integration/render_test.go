@@ -34,7 +34,7 @@ func NewTestServer(t *testing.T) *TestServer {
 	logger := zap.NewNop()
 
 	// Create Chrome instance
-	chromeInstance, err := chrome.New(chrome.InstanceConfig{
+	chromeInstance, err := chrome.New(0, chrome.InstanceConfig{
 		Headless:       true,
 		DisableGPU:     true,
 		NoSandbox:      true,
@@ -160,7 +160,7 @@ func TestIntegration_JSRender_CapturesFullContent(t *testing.T) {
 	logger := zap.NewNop()
 
 	// Create Chrome instance
-	chromeInstance, err := chrome.New(chrome.InstanceConfig{
+	chromeInstance, err := chrome.New(0, chrome.InstanceConfig{
 		Headless:       true,
 		DisableGPU:     true,
 		NoSandbox:      true,
@@ -332,7 +332,7 @@ func TestIntegration_BlockingAnalytics(t *testing.T) {
 	logger := zap.NewNop()
 
 	// Create Chrome instance
-	chromeInstance, err := chrome.New(chrome.InstanceConfig{
+	chromeInstance, err := chrome.New(0, chrome.InstanceConfig{
 		Headless:       true,
 		DisableGPU:     true,
 		NoSandbox:      true,

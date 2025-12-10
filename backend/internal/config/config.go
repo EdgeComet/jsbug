@@ -5,6 +5,7 @@ import (
 	"os"
 	"strconv"
 	"strings"
+	"time"
 
 	"gopkg.in/yaml.v3"
 )
@@ -35,6 +36,14 @@ type ChromeConfig struct {
 	TimeoutMax     int    `yaml:"timeout_max"`
 	ViewportWidth  int    `yaml:"viewport_width"`
 	ViewportHeight int    `yaml:"viewport_height"`
+
+	// Pool settings
+	PoolSize          int           `yaml:"pool_size"`
+	WarmupURL         string        `yaml:"warmup_url"`
+	WarmupTimeout     time.Duration `yaml:"warmup_timeout"`
+	RestartAfterCount int           `yaml:"restart_after_count"`
+	RestartAfterTime  time.Duration `yaml:"restart_after_time"`
+	ShutdownTimeout   time.Duration `yaml:"shutdown_timeout"`
 }
 
 // LoggingConfig contains logging settings
@@ -70,6 +79,14 @@ const (
 	defaultViewportHeight = 1080
 	defaultLogLevel       = LogLevelInfo
 	defaultLogFormat      = LogFormatJSON
+
+	// Pool defaults
+	defaultPoolSize          = 4
+	defaultWarmupURL         = "https://example.com/"
+	defaultWarmupTimeout     = 10 * time.Second
+	defaultRestartAfterCount = 50
+	defaultRestartAfterTime  = 30 * time.Minute
+	defaultShutdownTimeout   = 30 * time.Second
 )
 
 // Validation constraints
@@ -80,6 +97,10 @@ const (
 	maxTimeout        = 60
 	minViewportWidth  = 1
 	minViewportHeight = 1
+
+	// Pool validation
+	minPoolSize = 1
+	maxPoolSize = 16
 )
 
 var validLogLevels = map[string]bool{
@@ -146,6 +167,26 @@ func (c *Config) applyDefaults() {
 		c.Chrome.ViewportHeight = defaultViewportHeight
 	}
 
+	// Pool defaults
+	if c.Chrome.PoolSize == 0 {
+		c.Chrome.PoolSize = defaultPoolSize
+	}
+	if c.Chrome.WarmupURL == "" {
+		c.Chrome.WarmupURL = defaultWarmupURL
+	}
+	if c.Chrome.WarmupTimeout == 0 {
+		c.Chrome.WarmupTimeout = defaultWarmupTimeout
+	}
+	if c.Chrome.RestartAfterCount == 0 {
+		c.Chrome.RestartAfterCount = defaultRestartAfterCount
+	}
+	if c.Chrome.RestartAfterTime == 0 {
+		c.Chrome.RestartAfterTime = defaultRestartAfterTime
+	}
+	if c.Chrome.ShutdownTimeout == 0 {
+		c.Chrome.ShutdownTimeout = defaultShutdownTimeout
+	}
+
 	// Logging defaults
 	if c.Logging.Level == "" {
 		c.Logging.Level = defaultLogLevel
@@ -165,6 +206,12 @@ func (c *Config) applyEnvOverrides() {
 
 	if chromePath := os.Getenv("JSBUG_CHROME_PATH"); chromePath != "" {
 		c.Chrome.ExecutablePath = chromePath
+	}
+
+	if poolSize := os.Getenv("JSBUG_POOL_SIZE"); poolSize != "" {
+		if p, err := strconv.Atoi(poolSize); err == nil {
+			c.Chrome.PoolSize = p
+		}
 	}
 
 	if logLevel := os.Getenv("JSBUG_LOG_LEVEL"); logLevel != "" {
@@ -199,6 +246,17 @@ func (c *Config) Validate() error {
 	}
 	if c.Chrome.ViewportHeight < minViewportHeight {
 		return fmt.Errorf("invalid viewport_height: %d (must be > 0)", c.Chrome.ViewportHeight)
+	}
+
+	// Validate pool settings
+	if c.Chrome.PoolSize < minPoolSize || c.Chrome.PoolSize > maxPoolSize {
+		return fmt.Errorf("invalid pool_size: %d (must be %d-%d)", c.Chrome.PoolSize, minPoolSize, maxPoolSize)
+	}
+	if c.Chrome.WarmupTimeout <= 0 {
+		return fmt.Errorf("invalid warmup_timeout: %v (must be > 0)", c.Chrome.WarmupTimeout)
+	}
+	if c.Chrome.ShutdownTimeout <= 0 {
+		return fmt.Errorf("invalid shutdown_timeout: %v (must be > 0)", c.Chrome.ShutdownTimeout)
 	}
 
 	// Validate log level

@@ -139,7 +139,7 @@ func TestRendererV2_SimpleRender(t *testing.T) {
 	defer server.Close()
 
 	logger := zap.NewNop()
-	instance, err := New(newTestConfig(), logger)
+	instance, err := New(0, newTestConfig(), logger)
 	if err != nil {
 		t.Fatalf("Failed to create instance: %v", err)
 	}
@@ -183,7 +183,7 @@ func TestRendererV2_UserAgentApplied(t *testing.T) {
 	defer server.Close()
 
 	logger := zap.NewNop()
-	instance, err := New(newTestConfig(), logger)
+	instance, err := New(0, newTestConfig(), logger)
 	if err != nil {
 		t.Fatalf("Failed to create instance: %v", err)
 	}
@@ -213,7 +213,7 @@ func TestRendererV2_SoftTimeout(t *testing.T) {
 	defer server.Close()
 
 	logger := zap.NewNop()
-	instance, err := New(newTestConfig(), logger)
+	instance, err := New(0, newTestConfig(), logger)
 	if err != nil {
 		t.Fatalf("Failed to create instance: %v", err)
 	}
@@ -246,7 +246,7 @@ func TestRendererV2_HardTimeout(t *testing.T) {
 	defer server.Close()
 
 	logger := zap.NewNop()
-	instance, err := New(newTestConfig(), logger)
+	instance, err := New(0, newTestConfig(), logger)
 	if err != nil {
 		t.Fatalf("Failed to create instance: %v", err)
 	}
@@ -278,7 +278,7 @@ func TestRendererV2_NetworkEventsCapture(t *testing.T) {
 	defer server.Close()
 
 	logger := zap.NewNop()
-	instance, err := New(newTestConfig(), logger)
+	instance, err := New(0, newTestConfig(), logger)
 	if err != nil {
 		t.Fatalf("Failed to create instance: %v", err)
 	}
@@ -318,7 +318,7 @@ func TestRendererV2_BlockedRequests(t *testing.T) {
 	defer server.Close()
 
 	logger := zap.NewNop()
-	instance, err := New(newTestConfig(), logger)
+	instance, err := New(0, newTestConfig(), logger)
 	if err != nil {
 		t.Fatalf("Failed to create instance: %v", err)
 	}
@@ -361,7 +361,7 @@ func TestRendererV2_LifecycleEvents(t *testing.T) {
 	defer server.Close()
 
 	logger := zap.NewNop()
-	instance, err := New(newTestConfig(), logger)
+	instance, err := New(0, newTestConfig(), logger)
 	if err != nil {
 		t.Fatalf("Failed to create instance: %v", err)
 	}
@@ -408,7 +408,7 @@ func TestRendererV2_Redirect(t *testing.T) {
 	defer server.Close()
 
 	logger := zap.NewNop()
-	instance, err := New(newTestConfig(), logger)
+	instance, err := New(0, newTestConfig(), logger)
 	if err != nil {
 		t.Fatalf("Failed to create instance: %v", err)
 	}
@@ -442,7 +442,7 @@ func TestRendererV2_HTMLExtraction(t *testing.T) {
 	defer server.Close()
 
 	logger := zap.NewNop()
-	instance, err := New(newTestConfig(), logger)
+	instance, err := New(0, newTestConfig(), logger)
 	if err != nil {
 		t.Fatalf("Failed to create instance: %v", err)
 	}
@@ -472,7 +472,7 @@ func TestRendererV2_HTMLExtraction(t *testing.T) {
 
 func TestRendererV2_IsAvailable(t *testing.T) {
 	logger := zap.NewNop()
-	instance, err := New(newTestConfig(), logger)
+	instance, err := New(0, newTestConfig(), logger)
 	if err != nil {
 		t.Fatalf("Failed to create instance: %v", err)
 	}
@@ -504,7 +504,7 @@ func TestRendererV2_ViewportConfiguration(t *testing.T) {
 	defer server.Close()
 
 	logger := zap.NewNop()
-	instance, err := New(newTestConfig(), logger)
+	instance, err := New(0, newTestConfig(), logger)
 	if err != nil {
 		t.Fatalf("Failed to create instance: %v", err)
 	}
@@ -535,7 +535,7 @@ func TestRendererV2_ConsoleMessages(t *testing.T) {
 	defer server.Close()
 
 	logger := zap.NewNop()
-	instance, err := New(newTestConfig(), logger)
+	instance, err := New(0, newTestConfig(), logger)
 	if err != nil {
 		t.Fatalf("Failed to create instance: %v", err)
 	}
@@ -563,7 +563,7 @@ func TestRendererV2_JSErrors(t *testing.T) {
 	defer server.Close()
 
 	logger := zap.NewNop()
-	instance, err := New(newTestConfig(), logger)
+	instance, err := New(0, newTestConfig(), logger)
 	if err != nil {
 		t.Fatalf("Failed to create instance: %v", err)
 	}

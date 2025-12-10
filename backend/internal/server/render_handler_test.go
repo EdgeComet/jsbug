@@ -18,24 +18,6 @@ import (
 	"github.com/user/jsbug/internal/types"
 )
 
-// MockRenderer implements the Renderer interface for testing
-type MockRenderer struct {
-	available bool
-	result    *chrome.RenderResult
-	err       error
-}
-
-func (m *MockRenderer) Render(ctx context.Context, opts chrome.RenderOptions) (*chrome.RenderResult, error) {
-	if m.err != nil {
-		return nil, m.err
-	}
-	return m.result, nil
-}
-
-func (m *MockRenderer) IsAvailable() bool {
-	return m.available
-}
-
 // MockFetcher implements the Fetcher interface for testing
 type MockFetcher struct {
 	result *fetcher.FetchResult
@@ -223,69 +205,13 @@ func TestRenderHandler_InvalidWaitEvent(t *testing.T) {
 	}
 }
 
-func TestRenderHandler_JSRender_Success(t *testing.T) {
+func TestRenderHandler_JSRender_PoolUnavailable(t *testing.T) {
 	logger := zap.NewNop()
 	cfg := testConfig()
 	p := parser.NewParser()
 
-	mockRenderer := &MockRenderer{
-		available: true,
-		result: &chrome.RenderResult{
-			HTML:          "<html><head><title>Test Page</title></head><body><h1>Hello</h1></body></html>",
-			FinalURL:      "https://example.com/",
-			StatusCode:    200,
-			PageSizeBytes: 100,
-			RenderTime:    0.5,
-		},
-	}
-
-	handler := NewRenderHandler(mockRenderer, nil, p, cfg, logger)
-
-	body := map[string]interface{}{
-		"url":        "https://example.com",
-		"js_enabled": true,
-	}
-	jsonBody, _ := json.Marshal(body)
-
-	req := httptest.NewRequest(http.MethodPost, "/api/render", bytes.NewBuffer(jsonBody))
-	w := httptest.NewRecorder()
-
-	handler.ServeHTTP(w, req)
-
-	if w.Code != http.StatusOK {
-		t.Errorf("status = %d, want %d", w.Code, http.StatusOK)
-	}
-
-	var response types.RenderResponse
-	json.NewDecoder(w.Body).Decode(&response)
-
-	if !response.Success {
-		t.Errorf("expected success = true, got error: %v", response.Error)
-	}
-	if response.Data == nil {
-		t.Fatal("expected data to be set")
-	}
-	if response.Data.StatusCode != 200 {
-		t.Errorf("StatusCode = %d, want 200", response.Data.StatusCode)
-	}
-	if response.Data.Title != "Test Page" {
-		t.Errorf("Title = %q, want %q", response.Data.Title, "Test Page")
-	}
-	if len(response.Data.H1) != 1 || response.Data.H1[0] != "Hello" {
-		t.Errorf("H1 = %v, want [Hello]", response.Data.H1)
-	}
-}
-
-func TestRenderHandler_JSRender_ChromeUnavailable(t *testing.T) {
-	logger := zap.NewNop()
-	cfg := testConfig()
-	p := parser.NewParser()
-
-	mockRenderer := &MockRenderer{
-		available: false,
-	}
-
-	handler := NewRenderHandler(mockRenderer, nil, p, cfg, logger)
+	// Handler with nil pool
+	handler := NewRenderHandler(nil, nil, p, cfg, logger)
 
 	body := map[string]interface{}{
 		"url":        "https://example.com",
@@ -306,21 +232,19 @@ func TestRenderHandler_JSRender_ChromeUnavailable(t *testing.T) {
 	json.NewDecoder(w.Body).Decode(&response)
 
 	if response.Error == nil || response.Error.Code != types.ErrChromeUnavailable {
-		t.Errorf("expected error code %s", types.ErrChromeUnavailable)
+		t.Errorf("expected error code %s, got %v", types.ErrChromeUnavailable, response.Error)
 	}
 }
 
-func TestRenderHandler_JSRender_Timeout(t *testing.T) {
+func TestRenderHandler_JSRender_PoolExhausted(t *testing.T) {
 	logger := zap.NewNop()
 	cfg := testConfig()
 	p := parser.NewParser()
 
-	mockRenderer := &MockRenderer{
-		available: true,
-		err:       errors.New("context deadline exceeded"),
-	}
+	// Create a mock pool that returns ErrNoInstanceAvailable
+	pool := createMockExhaustedPool(logger)
 
-	handler := NewRenderHandler(mockRenderer, nil, p, cfg, logger)
+	handler := NewRenderHandler(pool, nil, p, cfg, logger)
 
 	body := map[string]interface{}{
 		"url":        "https://example.com",
@@ -333,29 +257,27 @@ func TestRenderHandler_JSRender_Timeout(t *testing.T) {
 
 	handler.ServeHTTP(w, req)
 
-	if w.Code != http.StatusRequestTimeout {
-		t.Errorf("status = %d, want %d", w.Code, http.StatusRequestTimeout)
+	if w.Code != http.StatusServiceUnavailable {
+		t.Errorf("status = %d, want %d", w.Code, http.StatusServiceUnavailable)
 	}
 
 	var response types.RenderResponse
 	json.NewDecoder(w.Body).Decode(&response)
 
-	if response.Error == nil || response.Error.Code != types.ErrRenderTimeout {
-		t.Errorf("expected error code %s", types.ErrRenderTimeout)
+	if response.Error == nil || response.Error.Code != types.ErrPoolExhausted {
+		t.Errorf("expected error code %s, got %v", types.ErrPoolExhausted, response.Error)
 	}
 }
 
-func TestRenderHandler_JSRender_RenderError(t *testing.T) {
+func TestRenderHandler_JSRender_PoolShuttingDown(t *testing.T) {
 	logger := zap.NewNop()
 	cfg := testConfig()
 	p := parser.NewParser()
 
-	mockRenderer := &MockRenderer{
-		available: true,
-		err:       errors.New("failed to navigate"),
-	}
+	// Create a mock pool that returns ErrPoolShuttingDown
+	pool := createMockShuttingDownPool(logger)
 
-	handler := NewRenderHandler(mockRenderer, nil, p, cfg, logger)
+	handler := NewRenderHandler(pool, nil, p, cfg, logger)
 
 	body := map[string]interface{}{
 		"url":        "https://example.com",
@@ -368,16 +290,26 @@ func TestRenderHandler_JSRender_RenderError(t *testing.T) {
 
 	handler.ServeHTTP(w, req)
 
-	if w.Code != http.StatusInternalServerError {
-		t.Errorf("status = %d, want %d", w.Code, http.StatusInternalServerError)
+	if w.Code != http.StatusServiceUnavailable {
+		t.Errorf("status = %d, want %d", w.Code, http.StatusServiceUnavailable)
 	}
 
 	var response types.RenderResponse
 	json.NewDecoder(w.Body).Decode(&response)
 
-	if response.Error == nil || response.Error.Code != types.ErrRenderFailed {
-		t.Errorf("expected error code %s", types.ErrRenderFailed)
+	if response.Error == nil || response.Error.Code != types.ErrPoolShuttingDown {
+		t.Errorf("expected error code %s, got %v", types.ErrPoolShuttingDown, response.Error)
 	}
+}
+
+// createMockExhaustedPool creates a pool with no available instances
+func createMockExhaustedPool(logger *zap.Logger) *chrome.ChromePool {
+	return chrome.NewMockPool(logger, chrome.ErrNoInstanceAvailable)
+}
+
+// createMockShuttingDownPool creates a pool that is shutting down
+func createMockShuttingDownPool(logger *zap.Logger) *chrome.ChromePool {
+	return chrome.NewMockPool(logger, chrome.ErrPoolShuttingDown)
 }
 
 func TestRenderHandler_Fetch_Success(t *testing.T) {
@@ -660,37 +592,5 @@ func TestRenderHandler_UserAgentResolution(t *testing.T) {
 	}
 }
 
-func TestRenderHandler_BlockingOptions(t *testing.T) {
-	logger := zap.NewNop()
-	cfg := testConfig()
-	p := parser.NewParser()
-
-	mockRenderer := &MockRenderer{
-		available: true,
-		result: &chrome.RenderResult{
-			HTML:       "<html></html>",
-			StatusCode: 200,
-		},
-	}
-
-	handler := NewRenderHandler(mockRenderer, nil, p, cfg, logger)
-
-	body := map[string]interface{}{
-		"url":             "https://example.com",
-		"js_enabled":      true,
-		"block_analytics": true,
-		"block_ads":       true,
-		"block_social":    false,
-		"blocked_types":   []string{"font", "image"},
-	}
-	jsonBody, _ := json.Marshal(body)
-
-	req := httptest.NewRequest(http.MethodPost, "/api/render", bytes.NewBuffer(jsonBody))
-	w := httptest.NewRecorder()
-
-	handler.ServeHTTP(w, req)
-
-	if w.Code != http.StatusOK {
-		t.Errorf("status = %d, want %d", w.Code, http.StatusOK)
-	}
-}
+// Note: TestRenderHandler_BlockingOptions was removed as it requires real Chrome instances.
+// Blocking functionality is tested via integration tests.
