@@ -1,0 +1,21 @@
+.themeToggle {
+  margin-left: auto;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--dark-tertiary);
+  color: var(--text-dim);
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-size: 18px;
+}
+
+.themeToggle:hover {
+  background: var(--dark-secondary);
+  color: var(--text-light);
+}
