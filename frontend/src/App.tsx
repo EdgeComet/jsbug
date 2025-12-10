@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Icon } from './components/common/Icon'
 import { ConfigProvider, useConfig } from './context/ConfigContext'
+import { ThemeProvider } from './context/ThemeContext'
 import type { AppConfig } from './types/config'
 import { Header } from './components/Header/Header'
 import { Panel } from './components/Panel/Panel'
@@ -145,9 +146,11 @@ function AppContent() {
 
 function App() {
   return (
-    <ConfigProvider>
-      <AppContent />
-    </ConfigProvider>
+    <ThemeProvider>
+      <ConfigProvider>
+        <AppContent />
+      </ConfigProvider>
+    </ThemeProvider>
   )
 }
 

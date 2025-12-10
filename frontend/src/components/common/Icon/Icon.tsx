@@ -10,8 +10,10 @@ export type IconName =
   | 'image'
   | 'info'
   | 'loader'
+  | 'moon'
   | 'search'
   | 'sliders'
+  | 'sun'
   | 'terminal'
   | 'x'
   | 'x-circle';
@@ -132,6 +134,8 @@ function getIconPaths(name: IconName) {
           <line x1="16.24" y1="7.76" x2="19.07" y2="4.93" />
         </>
       );
+    case 'moon':
+      return <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />;
     case 'search':
       return (
         <>
@@ -151,6 +155,20 @@ function getIconPaths(name: IconName) {
           <line x1="1" y1="14" x2="7" y2="14" />
           <line x1="9" y1="8" x2="15" y2="8" />
           <line x1="17" y1="16" x2="23" y2="16" />
+        </>
+      );
+    case 'sun':
+      return (
+        <>
+          <circle cx="12" cy="12" r="5" />
+          <line x1="12" y1="1" x2="12" y2="3" />
+          <line x1="12" y1="21" x2="12" y2="23" />
+          <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+          <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+          <line x1="1" y1="12" x2="3" y2="12" />
+          <line x1="21" y1="12" x2="23" y2="12" />
+          <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+          <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
         </>
       );
     case 'terminal':

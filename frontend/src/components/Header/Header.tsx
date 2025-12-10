@@ -2,6 +2,7 @@ import { Logo } from './Logo';
 import { URLInput } from './URLInput';
 import { ConfigButton } from './ConfigButton';
 import { CompareButton } from './CompareButton';
+import { ThemeToggle } from './ThemeToggle';
 import styles from './Header.module.css';
 
 interface HeaderProps {
@@ -24,6 +25,7 @@ export function Header({ url, onUrlChange, onOpenConfig, onCompare, onUrlValidCh
         <div className={styles.headerActions}>
           <ConfigButton onClick={onOpenConfig} />
           <CompareButton onClick={onCompare} disabled={!isUrlValid || isAnalyzing} />
+          <ThemeToggle />
         </div>
       </div>
     </header>

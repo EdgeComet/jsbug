@@ -2,9 +2,14 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
 import { Header } from './Header';
 import { ConfigProvider } from '../../context/ConfigContext';
+import { ThemeProvider } from '../../context/ThemeContext';
 
 const renderWithProvider = (ui: React.ReactElement) => {
-  return render(<ConfigProvider>{ui}</ConfigProvider>);
+  return render(
+    <ThemeProvider>
+      <ConfigProvider>{ui}</ConfigProvider>
+    </ThemeProvider>
+  );
 };
 
 describe('Header', () => {

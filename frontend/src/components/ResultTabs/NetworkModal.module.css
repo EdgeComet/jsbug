@@ -38,8 +38,8 @@
 }
 
 .networkTable th.sortableHeaderActive {
-  background: #E0F2FE;
-  color: var(--electric-blue);
+  background: var(--table-header-sort-bg);
+  color: var(--table-header-sort-text);
 }
 
 .headerContent {

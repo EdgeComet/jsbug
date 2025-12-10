@@ -63,6 +63,48 @@
   --type-font: #EC4899;
   --type-xhr: #06B6D4;
   --type-other: #6B7280;
+
+  /* Table Header Sort */
+  --table-header-sort-bg: #E0F2FE;
+  --table-header-sort-text: #0EA5E9;
+}
+
+/* ========================================
+   Dark Theme (GitHub-inspired)
+   ======================================== */
+[data-theme="dark"] {
+  /* Backgrounds */
+  /*--bg-primary: #0d1117;*/
+  --bg-primary: #12161d;
+  --bg-secondary: #161b22;
+  --bg-tertiary: #21262d;
+  --bg-white: #161b22;
+
+  /* Text */
+  --text-dark: #f0f6fc;
+  --text-body: #c9d1d9;
+  --text-muted: #8b949e;
+  --text-dim: #6e7681;
+  --text-light: #f0f6fc;
+
+  /* Borders */
+  --border-light: #30363d;
+  --border-medium: #484f58;
+
+  /* Status colors - adjusted for dark backgrounds */
+  --success-light: rgba(16, 185, 129, 0.15);
+  --warning-light: rgba(245, 158, 11, 0.15);
+  --warning-lighter: rgba(245, 158, 11, 0.08);
+  --error-light: rgba(239, 68, 68, 0.15);
+
+  /* Shadows - darker for dark mode */
+  --shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.3);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.4);
+  --shadow-lg: 0 10px 40px rgba(0, 0, 0, 0.5);
+
+  /* Table Header Sort */
+  --table-header-sort-bg: rgba(14, 165, 233, 0.2);
+  --table-header-sort-text: #38bdf8;
 }
 
 /* ========================================
