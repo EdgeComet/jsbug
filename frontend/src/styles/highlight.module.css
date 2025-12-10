@@ -1,7 +1,7 @@
 .highlight {
   background: var(--warning-light);
   color: var(--text-dark);
-  padding: 1px 2px;
+  padding: 1px 0;
   border-radius: 2px;
 }
 
