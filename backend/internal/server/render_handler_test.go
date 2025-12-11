@@ -33,10 +33,7 @@ func (m *MockFetcher) Fetch(ctx context.Context, opts fetcher.FetchOptions) (*fe
 
 func testConfig() *config.Config {
 	return &config.Config{
-		Chrome: config.ChromeConfig{
-			ViewportWidth:  1920,
-			ViewportHeight: 1080,
-		},
+		Chrome: config.ChromeConfig{},
 	}
 }
 

@@ -31,13 +31,12 @@ const (
 
 // RenderOptions contains options for rendering a page
 type RenderOptions struct {
-	URL            string
-	UserAgent      string
-	Timeout        time.Duration
-	WaitEvent      string
-	Blocklist      *Blocklist
-	ViewportWidth  int
-	ViewportHeight int
+	URL       string
+	UserAgent string
+	Timeout   time.Duration
+	WaitEvent string
+	Blocklist *Blocklist
+	IsMobile  bool
 }
 
 // RenderResult contains the results of rendering a page
@@ -365,7 +364,6 @@ func (r *RendererV2) buildTasks(opts RenderOptions, state *renderState, collecto
 		// Enable fetch interception for request blocking
 		chromedp.ActionFunc(func(ctx context.Context) error {
 			if opts.Blocklist != nil && !opts.Blocklist.IsEmpty() {
-				fmt.Println("BLOCKLIST====")
 				patterns := []*fetch.RequestPattern{
 					{RequestStage: fetch.RequestStageRequest},
 				}
@@ -395,15 +393,16 @@ func (r *RendererV2) buildTasks(opts RenderOptions, state *renderState, collecto
 
 		// Set viewport
 		chromedp.ActionFunc(func(ctx context.Context) error {
-			if opts.ViewportWidth > 0 && opts.ViewportHeight > 0 {
-				return emulation.SetDeviceMetricsOverride(
-					int64(opts.ViewportWidth),
-					int64(opts.ViewportHeight),
-					1.0,                      // Default device scale
-					opts.ViewportWidth < 768, // Mobile if width < 768px
-				).Do(ctx)
+			width, height := DesktopWidth, DesktopHeight
+			if opts.IsMobile {
+				width, height = MobileWidth, MobileHeight
 			}
-			return nil
+			return emulation.SetDeviceMetricsOverride(
+				int64(width),
+				int64(height),
+				1.0,
+				opts.IsMobile,
+			).Do(ctx)
 		}),
 
 		// Navigate and wait for page ready (with soft timeout)

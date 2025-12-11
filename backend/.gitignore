@@ -26,7 +26,7 @@ coverage.txt
 Thumbs.db
 
 # Local config overrides
-config.local.yaml
+config.yaml
 *.local.yaml
 
 api.http

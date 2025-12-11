@@ -226,14 +226,14 @@ func (h *RenderHandler) handleJSRender(ctx context.Context, req *types.RenderReq
 	blocklist := chrome.NewBlocklist(req.BlockAnalytics, req.BlockAds, req.BlockSocial, req.BlockedTypes)
 
 	// Build render options
+	userAgent := types.ResolveUserAgent(req.UserAgent)
 	opts := chrome.RenderOptions{
-		URL:            req.URL,
-		UserAgent:      types.ResolveUserAgent(req.UserAgent),
-		Timeout:        time.Duration(req.Timeout) * time.Second,
-		WaitEvent:      req.WaitEvent,
-		Blocklist:      blocklist,
-		ViewportWidth:  h.config.Chrome.ViewportWidth,
-		ViewportHeight: h.config.Chrome.ViewportHeight,
+		URL:       req.URL,
+		UserAgent: userAgent,
+		Timeout:   time.Duration(req.Timeout) * time.Second,
+		WaitEvent: req.WaitEvent,
+		Blocklist: blocklist,
+		IsMobile:  isMobileUserAgent(userAgent),
 	}
 
 	// Publish navigating event
@@ -564,6 +564,18 @@ func (h *RenderHandler) publishError(requestID, code, message string) {
 	if h.sseManager != nil && requestID != "" {
 		h.sseManager.PublishError(requestID, code, message)
 	}
+}
+
+// isMobileUserAgent checks if the User-Agent indicates a mobile device
+func isMobileUserAgent(ua string) bool {
+	ua = strings.ToLower(ua)
+	mobileKeywords := []string{"mobile", "android", "iphone", "ipad", "ipod"}
+	for _, keyword := range mobileKeywords {
+		if strings.Contains(ua, keyword) {
+			return true
+		}
+	}
+	return false
 }
 
 // getClientIP extracts the client IP address from the request

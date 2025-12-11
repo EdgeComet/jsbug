@@ -16,10 +16,6 @@ server:
     - "http://localhost:3000"
 chrome:
   headless: true
-  timeout_default: 20
-  timeout_max: 45
-  viewport_width: 1280
-  viewport_height: 720
 logging:
   level: "debug"
   format: "console"
@@ -37,9 +33,6 @@ logging:
 	}
 	if cfg.Server.Port != 9000 {
 		t.Errorf("Server.Port = %d, want %d", cfg.Server.Port, 9000)
-	}
-	if cfg.Chrome.TimeoutDefault != 20 {
-		t.Errorf("Chrome.TimeoutDefault = %d, want %d", cfg.Chrome.TimeoutDefault, 20)
 	}
 	if cfg.Logging.Level != "debug" {
 		t.Errorf("Logging.Level = %q, want %q", cfg.Logging.Level, "debug")
@@ -69,18 +62,6 @@ logging: {}
 	if cfg.Server.Port != defaultPort {
 		t.Errorf("Server.Port = %d, want default %d", cfg.Server.Port, defaultPort)
 	}
-	if cfg.Chrome.TimeoutDefault != defaultTimeoutDefault {
-		t.Errorf("Chrome.TimeoutDefault = %d, want default %d", cfg.Chrome.TimeoutDefault, defaultTimeoutDefault)
-	}
-	if cfg.Chrome.TimeoutMax != defaultTimeoutMax {
-		t.Errorf("Chrome.TimeoutMax = %d, want default %d", cfg.Chrome.TimeoutMax, defaultTimeoutMax)
-	}
-	if cfg.Chrome.ViewportWidth != defaultViewportWidth {
-		t.Errorf("Chrome.ViewportWidth = %d, want default %d", cfg.Chrome.ViewportWidth, defaultViewportWidth)
-	}
-	if cfg.Chrome.ViewportHeight != defaultViewportHeight {
-		t.Errorf("Chrome.ViewportHeight = %d, want default %d", cfg.Chrome.ViewportHeight, defaultViewportHeight)
-	}
 	if cfg.Logging.Level != defaultLogLevel {
 		t.Errorf("Logging.Level = %q, want default %q", cfg.Logging.Level, defaultLogLevel)
 	}
@@ -93,8 +74,7 @@ func TestLoad_EnvironmentOverrides(t *testing.T) {
 	content := `
 server:
   port: 8080
-chrome:
-  executable_path: "/usr/bin/chrome"
+chrome: {}
 logging:
   level: "info"
 `
@@ -103,12 +83,10 @@ logging:
 
 	// Set environment variables
 	os.Setenv("JSBUG_PORT", "9999")
-	os.Setenv("JSBUG_CHROME_PATH", "/custom/chrome")
 	os.Setenv("JSBUG_LOG_LEVEL", "debug")
 	os.Setenv("JSBUG_CORS_ORIGINS", "http://a.com,http://b.com")
 	defer func() {
 		os.Unsetenv("JSBUG_PORT")
-		os.Unsetenv("JSBUG_CHROME_PATH")
 		os.Unsetenv("JSBUG_LOG_LEVEL")
 		os.Unsetenv("JSBUG_CORS_ORIGINS")
 	}()
@@ -120,9 +98,6 @@ logging:
 
 	if cfg.Server.Port != 9999 {
 		t.Errorf("Server.Port = %d, want %d (from env)", cfg.Server.Port, 9999)
-	}
-	if cfg.Chrome.ExecutablePath != "/custom/chrome" {
-		t.Errorf("Chrome.ExecutablePath = %q, want %q (from env)", cfg.Chrome.ExecutablePath, "/custom/chrome")
 	}
 	if cfg.Logging.Level != "debug" {
 		t.Errorf("Logging.Level = %q, want %q (from env)", cfg.Logging.Level, "debug")
@@ -151,39 +126,6 @@ func TestLoad_InvalidPort(t *testing.T) {
 				t.Errorf("Load() expected error for port %d, got nil", tt.port)
 			}
 		})
-	}
-}
-
-func TestLoad_InvalidTimeout(t *testing.T) {
-	content := `
-server: {}
-chrome:
-  timeout_default: 100
-logging: {}
-`
-	path := createTempConfig(t, content)
-	defer os.Remove(path)
-
-	_, err := Load(path)
-	if err == nil {
-		t.Error("Load() expected error for invalid timeout_default, got nil")
-	}
-}
-
-func TestLoad_TimeoutMaxLessThanDefault(t *testing.T) {
-	content := `
-server: {}
-chrome:
-  timeout_default: 30
-  timeout_max: 20
-logging: {}
-`
-	path := createTempConfig(t, content)
-	defer os.Remove(path)
-
-	_, err := Load(path)
-	if err == nil {
-		t.Error("Load() expected error when timeout_max < timeout_default, got nil")
 	}
 }
 
@@ -246,13 +188,7 @@ func TestValidate_ValidConfig(t *testing.T) {
 			Port: 8080,
 		},
 		Chrome: ChromeConfig{
-			TimeoutDefault:    15,
-			TimeoutMax:        60,
-			ViewportWidth:     1920,
-			ViewportHeight:    1080,
-			PoolSize:          4,
-			WarmupTimeout:     10 * time.Second,
-			ShutdownTimeout:   30 * time.Second,
+			PoolSize: 4,
 		},
 		Logging: LoggingConfig{
 			Level:  "info",
@@ -326,17 +262,11 @@ logging: {}
 	if cfg.Chrome.WarmupURL != defaultWarmupURL {
 		t.Errorf("Chrome.WarmupURL = %q, want default %q", cfg.Chrome.WarmupURL, defaultWarmupURL)
 	}
-	if cfg.Chrome.WarmupTimeout != defaultWarmupTimeout {
-		t.Errorf("Chrome.WarmupTimeout = %v, want default %v", cfg.Chrome.WarmupTimeout, defaultWarmupTimeout)
-	}
 	if cfg.Chrome.RestartAfterCount != defaultRestartAfterCount {
 		t.Errorf("Chrome.RestartAfterCount = %d, want default %d", cfg.Chrome.RestartAfterCount, defaultRestartAfterCount)
 	}
 	if cfg.Chrome.RestartAfterTime != defaultRestartAfterTime {
 		t.Errorf("Chrome.RestartAfterTime = %v, want default %v", cfg.Chrome.RestartAfterTime, defaultRestartAfterTime)
-	}
-	if cfg.Chrome.ShutdownTimeout != defaultShutdownTimeout {
-		t.Errorf("Chrome.ShutdownTimeout = %v, want default %v", cfg.Chrome.ShutdownTimeout, defaultShutdownTimeout)
 	}
 }
 
@@ -376,10 +306,8 @@ server: {}
 chrome:
   pool_size: 8
   warmup_url: "https://test.example.com/"
-  warmup_timeout: 15s
   restart_after_count: 100
   restart_after_time: 1h
-  shutdown_timeout: 45s
 logging: {}
 `
 	path := createTempConfig(t, content)
@@ -396,17 +324,11 @@ logging: {}
 	if cfg.Chrome.WarmupURL != "https://test.example.com/" {
 		t.Errorf("Chrome.WarmupURL = %q, want %q", cfg.Chrome.WarmupURL, "https://test.example.com/")
 	}
-	if cfg.Chrome.WarmupTimeout != 15*time.Second {
-		t.Errorf("Chrome.WarmupTimeout = %v, want %v", cfg.Chrome.WarmupTimeout, 15*time.Second)
-	}
 	if cfg.Chrome.RestartAfterCount != 100 {
 		t.Errorf("Chrome.RestartAfterCount = %d, want %d", cfg.Chrome.RestartAfterCount, 100)
 	}
 	if cfg.Chrome.RestartAfterTime != 1*time.Hour {
 		t.Errorf("Chrome.RestartAfterTime = %v, want %v", cfg.Chrome.RestartAfterTime, 1*time.Hour)
-	}
-	if cfg.Chrome.ShutdownTimeout != 45*time.Second {
-		t.Errorf("Chrome.ShutdownTimeout = %v, want %v", cfg.Chrome.ShutdownTimeout, 45*time.Second)
 	}
 }
 
@@ -439,16 +361,10 @@ func TestValidate_ValidPoolConfig(t *testing.T) {
 			Port: 8080,
 		},
 		Chrome: ChromeConfig{
-			TimeoutDefault:    15,
-			TimeoutMax:        60,
-			ViewportWidth:     1920,
-			ViewportHeight:    1080,
 			PoolSize:          4,
 			WarmupURL:         "https://example.com/",
-			WarmupTimeout:     10 * time.Second,
 			RestartAfterCount: 50,
 			RestartAfterTime:  30 * time.Minute,
-			ShutdownTimeout:   30 * time.Second,
 		},
 		Logging: LoggingConfig{
 			Level:  "info",
@@ -459,6 +375,23 @@ func TestValidate_ValidPoolConfig(t *testing.T) {
 	err := cfg.Validate()
 	if err != nil {
 		t.Errorf("Validate() error = %v, want nil", err)
+	}
+}
+
+func TestChromeTimeout(t *testing.T) {
+	cfg := &Config{
+		Server: ServerConfig{
+			Timeout: 30,
+		},
+	}
+
+	if got := cfg.ChromeTimeout(); got != 25 {
+		t.Errorf("ChromeTimeout() = %d, want %d", got, 25)
+	}
+
+	cfg.Server.Timeout = 60
+	if got := cfg.ChromeTimeout(); got != 55 {
+		t.Errorf("ChromeTimeout() = %d, want %d", got, 55)
 	}
 }
 
@@ -477,13 +410,7 @@ func TestValidate_InvalidPoolSize(t *testing.T) {
 			cfg := &Config{
 				Server: ServerConfig{Port: 8080},
 				Chrome: ChromeConfig{
-					TimeoutDefault:    15,
-					TimeoutMax:        60,
-					ViewportWidth:     1920,
-					ViewportHeight:    1080,
-					PoolSize:          tt.poolSize,
-					WarmupTimeout:     10 * time.Second,
-					ShutdownTimeout:   30 * time.Second,
+					PoolSize: tt.poolSize,
 				},
 				Logging: LoggingConfig{Level: "info", Format: "json"},
 			}

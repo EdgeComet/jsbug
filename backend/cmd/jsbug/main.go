@@ -8,6 +8,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"go.uber.org/zap"
 
@@ -43,18 +44,13 @@ func main() {
 
 	// Initialize Chrome pool
 	pool, err := chrome.NewChromePool(chrome.InstanceConfig{
-		ExecutablePath:    cfg.Chrome.ExecutablePath,
-		Headless:          true, // Always headless in production
-		DisableGPU:        cfg.Chrome.DisableGPU,
+		Headless:          true,  // Always headless in production
 		NoSandbox:         false, // Sandbox enabled for security
-		ViewportWidth:     cfg.Chrome.ViewportWidth,
-		ViewportHeight:    cfg.Chrome.ViewportHeight,
 		PoolSize:          cfg.Chrome.PoolSize,
 		WarmupURL:         cfg.Chrome.WarmupURL,
-		WarmupTimeout:     cfg.Chrome.WarmupTimeout,
+		Timeout:           time.Duration(cfg.ChromeTimeout()) * time.Second,
 		RestartAfterCount: cfg.Chrome.RestartAfterCount,
 		RestartAfterTime:  cfg.Chrome.RestartAfterTime,
-		ShutdownTimeout:   cfg.Chrome.ShutdownTimeout,
 	}, log)
 
 	if err != nil {
@@ -106,7 +102,7 @@ func main() {
 	// Graceful shutdown sequence:
 	// 1. Stop accepting new HTTP requests first
 	log.Info("Shutting down HTTP server...")
-	ctx, cancel := context.WithTimeout(context.Background(), cfg.Chrome.ShutdownTimeout)
+	ctx, cancel := context.WithTimeout(context.Background(), chrome.ShutdownTimeout)
 	defer cancel()
 
 	if err := srv.Shutdown(ctx); err != nil {

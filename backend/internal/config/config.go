@@ -20,31 +20,22 @@ type Config struct {
 
 // ServerConfig contains HTTP server settings
 type ServerConfig struct {
-	Host         string   `yaml:"host"`
-	Port         int      `yaml:"port"`
-	ReadTimeout  int      `yaml:"read_timeout"`
-	WriteTimeout int      `yaml:"write_timeout"`
-	CORSOrigins  []string `yaml:"cors_origins"`
+	Host        string   `yaml:"host"`
+	Port        int      `yaml:"port"`
+	Timeout     int      `yaml:"timeout"`
+	CORSOrigins []string `yaml:"cors_origins"`
 }
 
 // ChromeConfig contains Chrome browser settings
 type ChromeConfig struct {
-	ExecutablePath string `yaml:"executable_path"`
-	Headless       bool   `yaml:"headless"`
-	DisableGPU     bool   `yaml:"disable_gpu"`
-	NoSandbox      bool   `yaml:"no_sandbox"`
-	TimeoutDefault int    `yaml:"timeout_default"`
-	TimeoutMax     int    `yaml:"timeout_max"`
-	ViewportWidth  int    `yaml:"viewport_width"`
-	ViewportHeight int    `yaml:"viewport_height"`
+	Headless  bool `yaml:"headless"`
+	NoSandbox bool `yaml:"no_sandbox"`
 
 	// Pool settings
 	PoolSize          int           `yaml:"pool_size"`
 	WarmupURL         string        `yaml:"warmup_url"`
-	WarmupTimeout     time.Duration `yaml:"warmup_timeout"`
 	RestartAfterCount int           `yaml:"restart_after_count"`
 	RestartAfterTime  time.Duration `yaml:"restart_after_time"`
-	ShutdownTimeout   time.Duration `yaml:"shutdown_timeout"`
 }
 
 // LoggingConfig contains logging settings
@@ -75,35 +66,23 @@ const (
 
 // Default values
 const (
-	defaultHost           = "0.0.0.0"
-	defaultPort           = 9301
-	defaultReadTimeout    = 30
-	defaultWriteTimeout   = 30
-	defaultHeadless       = true
-	defaultTimeoutDefault = 15
-	defaultTimeoutMax     = 60
-	defaultViewportWidth  = 1920
-	defaultViewportHeight = 1080
-	defaultLogLevel       = LogLevelInfo
+	defaultHost      = "0.0.0.0"
+	defaultPort      = 9301
+	defaultTimeout   = 30
+	defaultLogLevel  = LogLevelInfo
 	defaultLogFormat      = LogFormatJSON
 
 	// Pool defaults
 	defaultPoolSize          = 4
 	defaultWarmupURL         = "https://example.com/"
-	defaultWarmupTimeout     = 10 * time.Second
 	defaultRestartAfterCount = 50
 	defaultRestartAfterTime  = 30 * time.Minute
-	defaultShutdownTimeout   = 30 * time.Second
 )
 
 // Validation constraints
 const (
-	minPort           = 1
-	maxPort           = 65535
-	minTimeout        = 1
-	maxTimeout        = 60
-	minViewportWidth  = 1
-	minViewportHeight = 1
+	minPort = 1
+	maxPort = 65535
 
 	// Pool validation
 	minPoolSize = 1
@@ -153,25 +132,8 @@ func (c *Config) applyDefaults() {
 	if c.Server.Port == 0 {
 		c.Server.Port = defaultPort
 	}
-	if c.Server.ReadTimeout == 0 {
-		c.Server.ReadTimeout = defaultReadTimeout
-	}
-	if c.Server.WriteTimeout == 0 {
-		c.Server.WriteTimeout = defaultWriteTimeout
-	}
-
-	// Chrome defaults
-	if c.Chrome.TimeoutDefault == 0 {
-		c.Chrome.TimeoutDefault = defaultTimeoutDefault
-	}
-	if c.Chrome.TimeoutMax == 0 {
-		c.Chrome.TimeoutMax = defaultTimeoutMax
-	}
-	if c.Chrome.ViewportWidth == 0 {
-		c.Chrome.ViewportWidth = defaultViewportWidth
-	}
-	if c.Chrome.ViewportHeight == 0 {
-		c.Chrome.ViewportHeight = defaultViewportHeight
+	if c.Server.Timeout == 0 {
+		c.Server.Timeout = defaultTimeout
 	}
 
 	// Pool defaults
@@ -181,19 +143,12 @@ func (c *Config) applyDefaults() {
 	if c.Chrome.WarmupURL == "" {
 		c.Chrome.WarmupURL = defaultWarmupURL
 	}
-	if c.Chrome.WarmupTimeout == 0 {
-		c.Chrome.WarmupTimeout = defaultWarmupTimeout
-	}
 	if c.Chrome.RestartAfterCount == 0 {
 		c.Chrome.RestartAfterCount = defaultRestartAfterCount
 	}
 	if c.Chrome.RestartAfterTime == 0 {
 		c.Chrome.RestartAfterTime = defaultRestartAfterTime
 	}
-	if c.Chrome.ShutdownTimeout == 0 {
-		c.Chrome.ShutdownTimeout = defaultShutdownTimeout
-	}
-
 	// Logging defaults
 	if c.Logging.Level == "" {
 		c.Logging.Level = defaultLogLevel
@@ -209,10 +164,6 @@ func (c *Config) applyEnvOverrides() {
 		if p, err := strconv.Atoi(port); err == nil {
 			c.Server.Port = p
 		}
-	}
-
-	if chromePath := os.Getenv("JSBUG_CHROME_PATH"); chromePath != "" {
-		c.Chrome.ExecutablePath = chromePath
 	}
 
 	if poolSize := os.Getenv("JSBUG_POOL_SIZE"); poolSize != "" {
@@ -245,35 +196,10 @@ func (c *Config) Validate() error {
 		return fmt.Errorf("invalid port: %d (must be %d-%d)", c.Server.Port, minPort, maxPort)
 	}
 
-	// Validate timeout default
-	if c.Chrome.TimeoutDefault < minTimeout || c.Chrome.TimeoutDefault > maxTimeout {
-		return fmt.Errorf("invalid timeout_default: %d (must be %d-%d)", c.Chrome.TimeoutDefault, minTimeout, maxTimeout)
-	}
-
-	// Validate timeout max
-	if c.Chrome.TimeoutMax < c.Chrome.TimeoutDefault {
-		return fmt.Errorf("timeout_max (%d) must be >= timeout_default (%d)", c.Chrome.TimeoutMax, c.Chrome.TimeoutDefault)
-	}
-
-	// Validate viewport dimensions
-	if c.Chrome.ViewportWidth < minViewportWidth {
-		return fmt.Errorf("invalid viewport_width: %d (must be > 0)", c.Chrome.ViewportWidth)
-	}
-	if c.Chrome.ViewportHeight < minViewportHeight {
-		return fmt.Errorf("invalid viewport_height: %d (must be > 0)", c.Chrome.ViewportHeight)
-	}
-
 	// Validate pool settings
 	if c.Chrome.PoolSize < minPoolSize || c.Chrome.PoolSize > maxPoolSize {
 		return fmt.Errorf("invalid pool_size: %d (must be %d-%d)", c.Chrome.PoolSize, minPoolSize, maxPoolSize)
 	}
-	if c.Chrome.WarmupTimeout <= 0 {
-		return fmt.Errorf("invalid warmup_timeout: %v (must be > 0)", c.Chrome.WarmupTimeout)
-	}
-	if c.Chrome.ShutdownTimeout <= 0 {
-		return fmt.Errorf("invalid shutdown_timeout: %v (must be > 0)", c.Chrome.ShutdownTimeout)
-	}
-
 	// Validate log level
 	if !validLogLevels[c.Logging.Level] {
 		return fmt.Errorf("invalid log level: %s (must be one of: debug, info, warn, error)", c.Logging.Level)
@@ -290,4 +216,9 @@ func (c *Config) Validate() error {
 	}
 
 	return nil
+}
+
+// ChromeTimeout returns the Chrome render timeout derived from server timeout
+func (c *Config) ChromeTimeout() int {
+	return c.Server.Timeout - 5
 }

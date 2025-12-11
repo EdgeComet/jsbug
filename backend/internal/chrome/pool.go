@@ -215,7 +215,7 @@ func NewMockPool(logger *zap.Logger, acquireErr error) *ChromePool {
 	}
 
 	return &ChromePool{
-		config:    InstanceConfig{PoolSize: 1, ShutdownTimeout: time.Second},
+		config:    InstanceConfig{PoolSize: 1},
 		logger:    logger,
 		instances: make([]*Instance, 0),
 		available: make(chan int, 1), // Empty channel - no instances available
@@ -236,8 +236,8 @@ func (p *ChromePool) Shutdown() error {
 		zap.Int32("active_renders", activeCount),
 	)
 
-	// Calculate deadline from config.ShutdownTimeout
-	deadline := time.Now().Add(p.config.ShutdownTimeout)
+	// Calculate deadline from ShutdownTimeout constant
+	deadline := time.Now().Add(ShutdownTimeout)
 
 	// Poll loop: wait for active renders to complete
 	for {

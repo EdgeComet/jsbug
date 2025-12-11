@@ -1,32 +1,21 @@
 server:
   host: "0.0.0.0"
   port: 9301
-  read_timeout: 30
-  write_timeout: 30
+  timeout: 30
   cors_origins:
     - "*"
 
 chrome:
-  # Chrome executable path (empty = auto-detect)
-  executable_path: ""
-  disable_gpu: true
-  timeout_default: 15
-  timeout_max: 60
-  viewport_width: 1920
-  viewport_height: 1080
-
   # Pool settings
   pool_size: 4                    # Number of Chrome instances (1-16)
   warmup_url: "https://example.com/"  # URL to load on instance start
-  warmup_timeout: 10s             # Timeout for warmup navigation
   restart_after_count: 50         # Restart instance after N renders (0 = disabled)
   restart_after_time: 30m         # Restart instance after duration (0 = disabled)
-  shutdown_timeout: 30s           # Max time to wait for active renders during shutdown
 
 logging:
   level: "info"
   format: "console"
 
 captcha:
-  enabled: true          # Enable/disable captcha verification
+  enabled: false          # Enable/disable captcha verification
   secret_key: "1x0000000000000000000000000000000AA"          # Cloudflare Turnstile test key (always passes)

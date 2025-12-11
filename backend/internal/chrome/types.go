@@ -13,6 +13,17 @@ const (
 	StatusDead                             // Instance failed and cannot recover
 )
 
+// Viewport dimensions
+const (
+	DesktopWidth  = 1920
+	DesktopHeight = 1080
+	MobileWidth   = 375
+	MobileHeight  = 812
+)
+
+// ShutdownTimeout is the maximum time to wait for graceful shutdown
+const ShutdownTimeout = 30 * time.Second
+
 // String returns the string representation of InstanceStatus
 func (s InstanceStatus) String() string {
 	switch s {
@@ -33,18 +44,13 @@ func (s InstanceStatus) String() string {
 
 // InstanceConfig contains Chrome browser configuration
 type InstanceConfig struct {
-	ExecutablePath string
-	Headless       bool
-	DisableGPU     bool
-	NoSandbox      bool
-	ViewportWidth  int
-	ViewportHeight int
+	Headless  bool
+	NoSandbox bool
 
 	// Pool-related settings
 	PoolSize          int
 	WarmupURL         string
-	WarmupTimeout     time.Duration
+	Timeout           time.Duration // General timeout for operations (warmup, render)
 	RestartAfterCount int
 	RestartAfterTime  time.Duration
-	ShutdownTimeout   time.Duration
 }

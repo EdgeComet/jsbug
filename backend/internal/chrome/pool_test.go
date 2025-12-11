@@ -177,7 +177,7 @@ func TestShutdown_WaitsForActiveRenders(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	pool := &ChromePool{
-		config:    InstanceConfig{PoolSize: 2, ShutdownTimeout: 5 * time.Second},
+		config:    InstanceConfig{PoolSize: 2},
 		logger:    logger,
 		instances: make([]*Instance, 2),
 		available: make(chan int, 2),
@@ -210,12 +210,12 @@ func TestShutdown_WaitsForActiveRenders(t *testing.T) {
 	}
 }
 
-func TestShutdown_RespectsTimeout(t *testing.T) {
+func TestShutdown_CompletesWithNoActiveRenders(t *testing.T) {
 	logger := zap.NewNop()
 	ctx, cancel := context.WithCancel(context.Background())
 
 	pool := &ChromePool{
-		config:    InstanceConfig{PoolSize: 2, ShutdownTimeout: 100 * time.Millisecond},
+		config:    InstanceConfig{PoolSize: 2},
 		logger:    logger,
 		instances: make([]*Instance, 2),
 		available: make(chan int, 2),
@@ -223,20 +223,14 @@ func TestShutdown_RespectsTimeout(t *testing.T) {
 		cancel:    cancel,
 	}
 
-	// Simulate stuck active render (never completes)
-	pool.activeCount.Add(1)
-
+	// No active renders - shutdown should complete immediately
 	start := time.Now()
 	pool.Shutdown()
 	elapsed := time.Since(start)
 
-	// Shutdown should complete around the timeout, not hang forever
-	// Allow some buffer for processing
-	if elapsed < 100*time.Millisecond {
-		t.Errorf("Shutdown completed too quickly: %v (expected ~100ms)", elapsed)
-	}
-	if elapsed > 500*time.Millisecond {
-		t.Errorf("Shutdown took too long: %v (expected ~100ms)", elapsed)
+	// Shutdown should complete quickly when no active renders
+	if elapsed > 1*time.Second {
+		t.Errorf("Shutdown took too long: %v (expected < 1s)", elapsed)
 	}
 }
 
@@ -255,7 +249,7 @@ func TestShutdown_TerminatesAllInstances(t *testing.T) {
 	}
 
 	pool := &ChromePool{
-		config:    InstanceConfig{PoolSize: 2, ShutdownTimeout: 100 * time.Millisecond},
+		config:    InstanceConfig{PoolSize: 2},
 		logger:    logger,
 		instances: instances,
 		available: make(chan int, 2),
@@ -278,7 +272,7 @@ func TestAcquire_ReturnsErrorAfterShutdown(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 
 	pool := &ChromePool{
-		config:    InstanceConfig{PoolSize: 2, ShutdownTimeout: 100 * time.Millisecond},
+		config:    InstanceConfig{PoolSize: 2},
 		logger:    logger,
 		instances: make([]*Instance, 2),
 		available: make(chan int, 2),

@@ -514,11 +514,10 @@ func TestRendererV2_ViewportConfiguration(t *testing.T) {
 
 	// Test with mobile viewport
 	result, err := renderer.Render(context.Background(), RenderOptions{
-		URL:            server.URL + "/simple",
-		Timeout:        10 * time.Second,
-		WaitEvent:      types.WaitLoad,
-		ViewportWidth:  375,
-		ViewportHeight: 667,
+		URL:       server.URL + "/simple",
+		Timeout:   10 * time.Second,
+		WaitEvent: types.WaitLoad,
+		IsMobile:  true,
 	})
 
 	if err != nil {

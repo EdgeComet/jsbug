@@ -11,11 +11,8 @@ import (
 
 func newTestConfig() InstanceConfig {
 	return InstanceConfig{
-		Headless:       true,
-		DisableGPU:     true,
-		NoSandbox:      false,
-		ViewportWidth:  1920,
-		ViewportHeight: 1080,
+		Headless:  true,
+		NoSandbox: false,
 	}
 }
 

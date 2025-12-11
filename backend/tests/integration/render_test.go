@@ -35,11 +35,8 @@ func NewTestServer(t *testing.T) *TestServer {
 
 	// Create Chrome instance
 	chromeInstance, err := chrome.New(0, chrome.InstanceConfig{
-		Headless:       true,
-		DisableGPU:     true,
-		NoSandbox:      true,
-		ViewportWidth:  1920,
-		ViewportHeight: 1080,
+		Headless:  true,
+		NoSandbox: true,
 	}, logger)
 	if err != nil {
 		t.Fatalf("Failed to create Chrome instance: %v", err)
@@ -57,10 +54,7 @@ func NewTestServer(t *testing.T) *TestServer {
 			WriteTimeout: 60,
 			CORSOrigins:  []string{"*"},
 		},
-		Chrome: config.ChromeConfig{
-			ViewportWidth:  1920,
-			ViewportHeight: 1080,
-		},
+		Chrome: config.ChromeConfig{},
 	}
 
 	srv := server.New(cfg, logger)
@@ -92,10 +86,7 @@ func TestIntegration_NonJSFetch_ReturnsRawHTML(t *testing.T) {
 	htmlParser := parser.NewParser()
 
 	cfg := &config.Config{
-		Chrome: config.ChromeConfig{
-			ViewportWidth:  1920,
-			ViewportHeight: 1080,
-		},
+		Chrome: config.ChromeConfig{},
 	}
 
 	renderHandler := server.NewRenderHandler(nil, httpFetcher, htmlParser, cfg, logger)
@@ -161,11 +152,8 @@ func TestIntegration_JSRender_CapturesFullContent(t *testing.T) {
 
 	// Create Chrome instance
 	chromeInstance, err := chrome.New(0, chrome.InstanceConfig{
-		Headless:       true,
-		DisableGPU:     true,
-		NoSandbox:      true,
-		ViewportWidth:  1920,
-		ViewportHeight: 1080,
+		Headless:  true,
+		NoSandbox: true,
 	}, logger)
 	if err != nil {
 		t.Fatalf("Failed to create Chrome: %v", err)
@@ -180,12 +168,10 @@ func TestIntegration_JSRender_CapturesFullContent(t *testing.T) {
 	defer cancel()
 
 	result, err := renderer.Render(ctx, chrome.RenderOptions{
-		URL:            fixtures.URL() + "/spa",
-		UserAgent:      types.ResolveUserAgent(types.UserAgentChrome),
-		Timeout:        15 * time.Second,
-		WaitEvent:      types.WaitNetworkIdle,
-		ViewportWidth:  1920,
-		ViewportHeight: 1080,
+		URL:       fixtures.URL() + "/spa",
+		UserAgent: types.ResolveUserAgent(types.UserAgentChrome),
+		Timeout:   15 * time.Second,
+		WaitEvent: types.WaitNetworkIdle,
 	})
 	if err != nil {
 		t.Fatalf("Render failed: %v", err)
@@ -333,11 +319,8 @@ func TestIntegration_BlockingAnalytics(t *testing.T) {
 
 	// Create Chrome instance
 	chromeInstance, err := chrome.New(0, chrome.InstanceConfig{
-		Headless:       true,
-		DisableGPU:     true,
-		NoSandbox:      true,
-		ViewportWidth:  1920,
-		ViewportHeight: 1080,
+		Headless:  true,
+		NoSandbox: true,
 	}, logger)
 	if err != nil {
 		t.Fatalf("Failed to create Chrome: %v", err)
@@ -353,13 +336,11 @@ func TestIntegration_BlockingAnalytics(t *testing.T) {
 	defer cancel()
 
 	result, err := renderer.Render(ctx, chrome.RenderOptions{
-		URL:            fixtures.URL() + "/analytics",
-		UserAgent:      types.ResolveUserAgent(types.UserAgentChrome),
-		Timeout:        15 * time.Second,
-		WaitEvent:      types.WaitLoad,
-		Blocklist:      blocklist,
-		ViewportWidth:  1920,
-		ViewportHeight: 1080,
+		URL:       fixtures.URL() + "/analytics",
+		UserAgent: types.ResolveUserAgent(types.UserAgentChrome),
+		Timeout:   15 * time.Second,
+		WaitEvent: types.WaitLoad,
+		Blocklist: blocklist,
 	})
 	if err != nil {
 		t.Fatalf("Render failed: %v", err)

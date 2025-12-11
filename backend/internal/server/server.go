@@ -43,8 +43,8 @@ func New(cfg *config.Config, logger *zap.Logger) *Server {
 	s.httpServer = &http.Server{
 		Addr:         fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port),
 		Handler:      s.corsMiddleware(s.mux),
-		ReadTimeout:  time.Duration(cfg.Server.ReadTimeout) * time.Second,
-		WriteTimeout: time.Duration(cfg.Server.WriteTimeout) * time.Second,
+		ReadTimeout:  time.Duration(cfg.Server.Timeout) * time.Second,
+		WriteTimeout: time.Duration(cfg.Server.Timeout) * time.Second,
 	}
 
 	return s

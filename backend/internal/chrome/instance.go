@@ -53,8 +53,6 @@ func New(id int, cfg InstanceConfig, logger *zap.Logger) (*Instance, error) {
 	logger.Info("Chrome instance started",
 		zap.Int("id", id),
 		zap.Bool("headless", cfg.Headless),
-		zap.Int("viewport_width", cfg.ViewportWidth),
-		zap.Int("viewport_height", cfg.ViewportHeight),
 	)
 
 	return instance, nil
@@ -72,7 +70,7 @@ func buildAllocatorOptions(cfg InstanceConfig) []chromedp.ExecAllocatorOption {
 		chromedp.Flag("mute-audio", true),
 		chromedp.Flag("no-first-run", true),
 		chromedp.Flag("safebrowsing-disable-auto-update", true),
-		chromedp.WindowSize(cfg.ViewportWidth, cfg.ViewportHeight),
+		chromedp.WindowSize(DesktopWidth, DesktopHeight),
 		chromedp.Flag("disk-cache-dir", "/dev/null"),
 		chromedp.Flag("disk-cache-size", "1"),
 	)
@@ -81,16 +79,11 @@ func buildAllocatorOptions(cfg InstanceConfig) []chromedp.ExecAllocatorOption {
 		opts = append(opts, chromedp.Headless)
 	}
 
-	if cfg.DisableGPU {
-		opts = append(opts, chromedp.DisableGPU)
-	}
+	// Always disable GPU for headless rendering
+	opts = append(opts, chromedp.DisableGPU)
 
 	if cfg.NoSandbox {
 		opts = append(opts, chromedp.NoSandbox)
-	}
-
-	if cfg.ExecutablePath != "" {
-		opts = append(opts, chromedp.ExecPath(cfg.ExecutablePath))
 	}
 
 	return opts
@@ -327,9 +320,9 @@ func (i *Instance) warmup() error {
 		return nil
 	}
 
-	timeout := i.config.WarmupTimeout
+	timeout := i.config.Timeout
 	if timeout == 0 {
-		timeout = 10 * time.Second
+		timeout = 25 * time.Second
 	}
 
 	ctx, cancel := context.WithTimeout(i.browserCtx, timeout)

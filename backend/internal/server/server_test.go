@@ -14,11 +14,10 @@ import (
 func newTestServer(corsOrigins []string) *Server {
 	cfg := &config.Config{
 		Server: config.ServerConfig{
-			Host:         "127.0.0.1",
-			Port:         8080,
-			ReadTimeout:  30,
-			WriteTimeout: 30,
-			CORSOrigins:  corsOrigins,
+			Host:        "127.0.0.1",
+			Port:        8080,
+			Timeout:     30,
+			CORSOrigins: corsOrigins,
 		},
 	}
 	logger := zap.NewNop()
