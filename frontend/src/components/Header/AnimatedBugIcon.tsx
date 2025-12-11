@@ -2,9 +2,13 @@ import styles from './Header.module.css';
 
 interface AnimatedBugIconProps {
   size?: number;
+  isRunning?: boolean;
 }
 
-export function AnimatedBugIcon({ size = 25 }: AnimatedBugIconProps) {
+export function AnimatedBugIcon({ size = 25, isRunning = false }: AnimatedBugIconProps) {
+  const leftLegsClass = isRunning ? styles.leftLegsRunning : styles.leftLegs;
+  const rightLegsClass = isRunning ? styles.rightLegsRunning : styles.rightLegs;
+
   return (
     <svg
       width={size}
@@ -34,13 +38,13 @@ export function AnimatedBugIcon({ size = 25 }: AnimatedBugIconProps) {
       <path d="M21 5c0 2.1-1.6 3.8-3.53 4" />
 
       {/* Left legs - animated */}
-      <g className={styles.leftLegs}>
+      <g className={leftLegsClass}>
         <path d="M6 13H2" />
         <path d="M6 17H2" />
       </g>
 
       {/* Right legs - animated */}
-      <g className={styles.rightLegs}>
+      <g className={rightLegsClass}>
         <path d="M18 13h4" />
         <path d="M18 17h4" />
       </g>

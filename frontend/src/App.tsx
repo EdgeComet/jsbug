@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { Icon } from './components/common/Icon'
-import { AnimatedBugIcon } from './components/Header/AnimatedBugIcon'
+import { EscapingBug } from './components/Header/EscapingBug'
 import { ConfigProvider, useConfig } from './context/ConfigContext'
 import { ThemeProvider } from './context/ThemeContext'
 import type { AppConfig } from './types/config'
@@ -119,7 +119,7 @@ function AppContent() {
         <div className={styles.welcomeSection}>
           <div className={styles.welcomeContent}>
             <div className={styles.welcomeIcon}>
-              <AnimatedBugIcon size={48} />
+              <EscapingBug />
             </div>
             <h1 className={styles.welcomeName}>JSBug</h1>
             <p className={styles.welcomeHeadline}>See What Search Engines &amp; AI Bots See</p>

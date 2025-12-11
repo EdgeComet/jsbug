@@ -54,6 +54,17 @@
   animation: legWiggle 2s ease-in-out infinite reverse;
 }
 
+/* Fast running animation */
+.leftLegsRunning {
+  transform-origin: 6px 15px;
+  animation: legWiggle 0.15s ease-in-out infinite;
+}
+
+.rightLegsRunning {
+  transform-origin: 18px 15px;
+  animation: legWiggle 0.15s ease-in-out infinite reverse;
+}
+
 .brandName {
   font-size: 18px;
   font-weight: 700;
