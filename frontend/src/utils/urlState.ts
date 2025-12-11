@@ -1,4 +1,5 @@
 import type { UserAgent, WaitEvent, PanelConfig, AppConfig } from '../types/config';
+import { isValidHttpUrl } from './urlValidation';
 
 // Forward mappings: full value → short code
 export const USER_AGENT_SHORT = {
@@ -44,6 +45,7 @@ export const SHORT_WAIT_FOR = {
 
 // Short parameter keys
 export const PARAM_KEYS = {
+  jsEnabled: 'j',
   timeout: 't',
   userAgent: 'ua',
   customUserAgent: 'cua',
@@ -61,6 +63,11 @@ export function serializePanelToParams(
   prefix: string // 'l' or 'r'
 ): URLSearchParams {
   const params = new URLSearchParams();
+
+  // jsEnabled
+  if (panel.jsEnabled !== defaults.jsEnabled) {
+    params.set(`${prefix}.${PARAM_KEYS.jsEnabled}`, panel.jsEnabled ? '1' : '0');
+  }
 
   // Timeout
   if (panel.timeout !== defaults.timeout) {
@@ -91,8 +98,6 @@ export function serializePanelToParams(
     params.set(`${prefix}.${PARAM_KEYS.blockCSS}`, panel.blocking.css ? '1' : '0');
   }
 
-  // Skip jsEnabled (handled separately) and trackingScripts (always true)
-
   return params;
 }
 
@@ -106,6 +111,12 @@ export function serializeToUrl(
 ): string {
   // Build base path
   const basePath = `/u/${targetUrl}`;
+
+  // If target URL contains a fragment, don't add config hash
+  // (would conflict with browser's hash parsing)
+  if (targetUrl.includes('#')) {
+    return basePath;
+  }
 
   // Get params for both panels
   const leftParams = serializePanelToParams(config.left, defaults.left, 'l');
@@ -136,6 +147,12 @@ export function parsePanelFromParams(
   prefix: string // 'l' or 'r'
 ): Partial<PanelConfig> {
   const result: Partial<PanelConfig> = {};
+
+  // jsEnabled
+  const jsEnabledStr = params.get(`${prefix}.${PARAM_KEYS.jsEnabled}`);
+  if (jsEnabledStr !== null) {
+    result.jsEnabled = jsEnabledStr === '1';
+  }
 
   // Timeout
   const timeoutStr = params.get(`${prefix}.${PARAM_KEYS.timeout}`);
@@ -198,11 +215,26 @@ export function parseUrlState(pathname: string, hash: string): ParsedUrlState {
   }
 
   // Extract target URL (everything after '/u/')
-  const targetUrl = pathname.slice(3);
+  let targetUrl = pathname.slice(3);
 
   // Parse hash (remove leading '#' if present)
   const hashStr = hash.startsWith('#') ? hash.slice(1) : hash;
-  const params = new URLSearchParams(hashStr);
+
+  // Check if hash looks like config params (contains 'l.' or 'r.' keys)
+  const isConfigHash = hashStr.includes('l.') || hashStr.includes('r.');
+
+  if (hashStr && !isConfigHash) {
+    // Hash is a target URL fragment, append it to the target URL
+    targetUrl = `${targetUrl}#${hashStr}`;
+  }
+
+  // Validate target URL
+  if (!isValidHttpUrl(targetUrl)) {
+    return { targetUrl: null, leftConfig: {}, rightConfig: {} };
+  }
+
+  // Only parse config if it's actually config params
+  const params = isConfigHash ? new URLSearchParams(hashStr) : new URLSearchParams();
 
   // Parse both panels
   const leftConfig = parsePanelFromParams(params, 'l');

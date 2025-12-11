@@ -1,4 +1,5 @@
 import { useState, useEffect, forwardRef } from 'react';
+import { validateHttpUrl } from '../../utils/urlValidation';
 import styles from './Header.module.css';
 
 interface URLInputProps {
@@ -20,7 +21,7 @@ export const URLInput = forwardRef<HTMLInputElement, URLInputProps>(function URL
   };
 
   useEffect(() => {
-    const result = validateUrl(value);
+    const result = validateHttpUrl(value);
     onValidChange?.(result.valid);
   }, [value, onValidChange]);
 
@@ -29,14 +30,14 @@ export const URLInput = forwardRef<HTMLInputElement, URLInputProps>(function URL
     onChange(newValue);
 
     if (touched) {
-      const result = validateUrl(newValue);
+      const result = validateHttpUrl(newValue);
       setError(result.valid ? null : result.error ?? null);
     }
   };
 
   const handleBlur = () => {
     setTouched(true);
-    const result = validateUrl(value);
+    const result = validateHttpUrl(value);
     setError(result.valid ? null : result.error ?? null);
   };
 
@@ -56,26 +57,3 @@ export const URLInput = forwardRef<HTMLInputElement, URLInputProps>(function URL
     </div>
   );
 })
-
-function validateUrl(string: string): { valid: boolean; error?: string } {
-  if (!string.trim()) {
-    return { valid: false, error: 'URL is required' };
-  }
-
-  try {
-    const url = new URL(string);
-
-    if (!['http:', 'https:'].includes(url.protocol)) {
-      return { valid: false, error: 'URL must use http or https' };
-    }
-
-    const host = url.hostname.toLowerCase();
-    if (host === 'localhost' || host === '127.0.0.1' || host.startsWith('192.168.') || host === '::1') {
-      return { valid: false, error: 'Local URLs are not allowed' };
-    }
-
-    return { valid: true };
-  } catch {
-    return { valid: false, error: 'Please enter a valid URL' };
-  }
-}

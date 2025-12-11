@@ -73,7 +73,7 @@ function AppContent() {
 
       // Auto-start analysis (defer to allow state to settle)
       setTimeout(() => {
-        handleCompare(mergedConfig)
+        handleCompare(mergedConfig, targetUrl)
       }, 0)
     } else {
       // No target URL, set default
@@ -123,12 +123,13 @@ function AppContent() {
     leftPanel.data?.technical.statusCode === 200 &&
     rightPanel.data?.technical.statusCode === 200
 
-  const handleCompare = async (overrideConfig?: AppConfig, retryCount = 0) => {
+  const handleCompare = async (overrideConfig?: AppConfig, urlOverride?: string, retryCount = 0) => {
     const effectiveConfig = overrideConfig ?? config
+    const effectiveUrl = urlOverride ?? url
 
     // Update browser URL (only on first attempt, not retries)
     if (retryCount === 0) {
-      const newUrl = serializeToUrl(url, effectiveConfig, defaultConfig)
+      const newUrl = serializeToUrl(effectiveUrl, effectiveConfig, defaultConfig)
       window.history.pushState(null, '', newUrl)
     }
 
@@ -150,9 +151,9 @@ function AppContent() {
     }
 
     // Fire all requests simultaneously (both use same captcha token)
-    const leftPromise = leftPanel.render(url, effectiveConfig.left, captchaToken)
-    const rightPromise = rightPanel.render(url, effectiveConfig.right, captchaToken)
-    robots.check(url)
+    const leftPromise = leftPanel.render(effectiveUrl, effectiveConfig.left, captchaToken)
+    const rightPromise = rightPanel.render(effectiveUrl, effectiveConfig.right, captchaToken)
+    robots.check(effectiveUrl)
 
     // Wait for both panels to complete
     await Promise.all([leftPromise, rightPromise])
@@ -165,7 +166,7 @@ function AppContent() {
     if ((isCaptchaTokenError(leftPanel.error) || isCaptchaTokenError(rightPanel.error))
         && retryCount < MAX_CAPTCHA_RETRIES) {
       // Silent retry - get new token and try again
-      return await handleCompare(overrideConfig, retryCount + 1)
+      return await handleCompare(overrideConfig, urlOverride, retryCount + 1)
     }
   }
 

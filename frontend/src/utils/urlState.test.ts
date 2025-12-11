@@ -177,6 +177,17 @@ describe('serializePanelToParams', () => {
     expect(params.get('r.t')).toBe('10');
     expect(params.get('l.t')).toBeNull();
   });
+
+  it('should serialize jsEnabled when different from default', () => {
+    const panel: PanelConfig = { ...defaultLeftConfig, jsEnabled: false };
+    const params = serializePanelToParams(panel, defaultLeftConfig, 'l');
+    expect(params.get('l.j')).toBe('0');
+  });
+
+  it('should not serialize jsEnabled when same as default', () => {
+    const params = serializePanelToParams(defaultLeftConfig, defaultLeftConfig, 'l');
+    expect(params.get('l.j')).toBeNull();
+  });
 });
 
 describe('serializeToUrl', () => {
@@ -243,6 +254,21 @@ describe('serializeToUrl', () => {
   it('should return empty hash when all values match defaults', () => {
     const url = serializeToUrl('https://example.com', defaultConfig, defaultConfig);
     expect(url).not.toContain('#');
+  });
+
+  it('should not add config hash when target URL contains fragment', () => {
+    const config: AppConfig = {
+      ...defaultConfig,
+      left: { ...defaultConfig.left, timeout: 20 },
+    };
+    const url = serializeToUrl('https://example.com/page#section', config, defaultConfig);
+    // Should preserve the fragment but not add config params
+    expect(url).toBe('/u/https://example.com/page#section');
+  });
+
+  it('should preserve target URL fragment without config params', () => {
+    const url = serializeToUrl('https://example.com#top', defaultConfig, defaultConfig);
+    expect(url).toBe('/u/https://example.com#top');
   });
 });
 
@@ -335,6 +361,24 @@ describe('parsePanelFromParams', () => {
     expect(result.timeout).toBe(20);
     expect(result.userAgent).toBeUndefined();
   });
+
+  it('should parse jsEnabled true', () => {
+    const params = new URLSearchParams('l.j=1');
+    const result = parsePanelFromParams(params, 'l');
+    expect(result.jsEnabled).toBe(true);
+  });
+
+  it('should parse jsEnabled false', () => {
+    const params = new URLSearchParams('l.j=0');
+    const result = parsePanelFromParams(params, 'l');
+    expect(result.jsEnabled).toBe(false);
+  });
+
+  it('should not set jsEnabled when not present', () => {
+    const params = new URLSearchParams('l.t=20');
+    const result = parsePanelFromParams(params, 'l');
+    expect(result.jsEnabled).toBeUndefined();
+  });
 });
 
 describe('parseUrlState', () => {
@@ -391,6 +435,51 @@ describe('parseUrlState', () => {
     expect(result.targetUrl).toBeNull();
   });
 
+  // URL validation tests
+  it('should return null for empty targetUrl', () => {
+    expect(parseUrlState('/u/', '').targetUrl).toBeNull();
+  });
+
+  it('should return null for whitespace-only targetUrl', () => {
+    expect(parseUrlState('/u/   ', '').targetUrl).toBeNull();
+  });
+
+  it('should return null for relative paths', () => {
+    expect(parseUrlState('/u/foo/bar', '').targetUrl).toBeNull();
+  });
+
+  it('should return null for javascript: URLs', () => {
+    expect(parseUrlState('/u/javascript:alert(1)', '').targetUrl).toBeNull();
+  });
+
+  it('should return null for file: URLs', () => {
+    expect(parseUrlState('/u/file:///etc/passwd', '').targetUrl).toBeNull();
+  });
+
+  it('should return null for data: URLs', () => {
+    expect(parseUrlState('/u/data:text/html,<script>alert(1)</script>', '').targetUrl).toBeNull();
+  });
+
+  it('should return null for localhost', () => {
+    expect(parseUrlState('/u/http://localhost:3000', '').targetUrl).toBeNull();
+  });
+
+  it('should return null for 127.0.0.1', () => {
+    expect(parseUrlState('/u/http://127.0.0.1:8080', '').targetUrl).toBeNull();
+  });
+
+  it('should return null for private IP addresses', () => {
+    expect(parseUrlState('/u/http://192.168.1.1', '').targetUrl).toBeNull();
+  });
+
+  it('should accept valid https URLs', () => {
+    expect(parseUrlState('/u/https://example.com', '').targetUrl).toBe('https://example.com');
+  });
+
+  it('should accept valid http URLs', () => {
+    expect(parseUrlState('/u/http://example.com', '').targetUrl).toBe('http://example.com');
+  });
+
   // Round-trip test
   it('should round-trip serialize then parse', () => {
     const defaultConfig: AppConfig = {
@@ -432,5 +521,102 @@ describe('parseUrlState', () => {
     expect(parsed.leftConfig.userAgent).toBe('googlebot');
     expect(parsed.rightConfig.timeout).toBe(5);
     expect(parsed.rightConfig.waitFor).toBe('DOMContentLoaded');
+  });
+
+  it('should round-trip jsEnabled changes', () => {
+    const defaultConfig: AppConfig = {
+      left: {
+        jsEnabled: true,
+        userAgent: 'chrome-mobile',
+        timeout: 15,
+        waitFor: 'networkIdle',
+        blocking: { imagesMedia: false, css: false, trackingScripts: true },
+      },
+      right: {
+        jsEnabled: false,
+        userAgent: 'chrome-mobile',
+        timeout: 10,
+        waitFor: 'load',
+        blocking: { imagesMedia: false, css: false, trackingScripts: true },
+      },
+    };
+
+    // Swap jsEnabled values
+    const modifiedConfig: AppConfig = {
+      left: { ...defaultConfig.left, jsEnabled: false },
+      right: { ...defaultConfig.right, jsEnabled: true },
+    };
+
+    // Serialize
+    const url = serializeToUrl('https://example.com', modifiedConfig, defaultConfig);
+
+    // Verify URL contains jsEnabled params
+    expect(url).toContain('l.j=0');
+    expect(url).toContain('r.j=1');
+
+    // Parse
+    const hashIndex = url.indexOf('#');
+    const pathname = hashIndex >= 0 ? url.slice(0, hashIndex) : url;
+    const hash = hashIndex >= 0 ? url.slice(hashIndex) : '';
+    const parsed = parseUrlState(pathname, hash);
+
+    // Verify round-trip
+    expect(parsed.leftConfig.jsEnabled).toBe(false);
+    expect(parsed.rightConfig.jsEnabled).toBe(true);
+  });
+
+  // URL fragment handling tests
+  it('should reconstruct target URL with fragment when hash is not config params', () => {
+    // Browser would split https://example.com/page#section into:
+    // pathname: /u/https://example.com/page
+    // hash: #section
+    const result = parseUrlState('/u/https://example.com/page', '#section');
+    expect(result.targetUrl).toBe('https://example.com/page#section');
+    expect(result.leftConfig).toEqual({});
+    expect(result.rightConfig).toEqual({});
+  });
+
+  it('should treat hash as config params when it contains l. prefix', () => {
+    const result = parseUrlState('/u/https://example.com', '#l.t=20');
+    expect(result.targetUrl).toBe('https://example.com');
+    expect(result.leftConfig.timeout).toBe(20);
+  });
+
+  it('should treat hash as config params when it contains r. prefix', () => {
+    const result = parseUrlState('/u/https://example.com', '#r.ua=gb');
+    expect(result.targetUrl).toBe('https://example.com');
+    expect(result.rightConfig.userAgent).toBe('googlebot');
+  });
+
+  it('should handle fragment that looks like a path', () => {
+    const result = parseUrlState('/u/https://example.com/docs', '#getting-started');
+    expect(result.targetUrl).toBe('https://example.com/docs#getting-started');
+  });
+
+  it('should round-trip target URL with fragment (no config changes)', () => {
+    const defaultConfig: AppConfig = {
+      left: {
+        jsEnabled: true,
+        userAgent: 'chrome-mobile',
+        timeout: 15,
+        waitFor: 'networkIdle',
+        blocking: { imagesMedia: false, css: false, trackingScripts: true },
+      },
+      right: {
+        jsEnabled: false,
+        userAgent: 'chrome-mobile',
+        timeout: 10,
+        waitFor: 'load',
+        blocking: { imagesMedia: false, css: false, trackingScripts: true },
+      },
+    };
+
+    // Serialize URL with fragment
+    const url = serializeToUrl('https://example.com/page#section', defaultConfig, defaultConfig);
+    expect(url).toBe('/u/https://example.com/page#section');
+
+    // Simulate browser parsing - pathname stops at #, hash contains fragment
+    const result = parseUrlState('/u/https://example.com/page', '#section');
+    expect(result.targetUrl).toBe('https://example.com/page#section');
   });
 });
