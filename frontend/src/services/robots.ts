@@ -1,13 +1,5 @@
 import type { RobotsRequest, RobotsResponse } from '../types/robots';
-
-/**
- * Get the robots API URL from environment variable or use default
- */
-function getRobotsApiUrl(): string {
-  const baseUrl = import.meta.env.VITE_API_URL || 'http://localhost:9301/api/render';
-  // Replace /api/render with /api/robots
-  return baseUrl.replace(/\/api\/render$/, '/api/robots');
-}
+import { getBaseApiUrl, API_ENDPOINTS } from '../constants/api';
 
 /**
  * Validate URL format
@@ -52,7 +44,7 @@ export async function checkRobots(url: string): Promise<RobotsResponse> {
     };
   }
 
-  const apiUrl = getRobotsApiUrl();
+  const apiUrl = getBaseApiUrl() + API_ENDPOINTS.ROBOTS;
   const request: RobotsRequest = { url };
 
   try {

@@ -1,12 +1,6 @@
 import type { PanelConfig } from '../types/config';
 import type { RenderRequest, RenderResponse } from '../types/api';
-
-/**
- * Get the API URL from environment variable or use default
- */
-export function getApiUrl(): string {
-  return import.meta.env.VITE_API_URL || 'http://localhost:9301/api/render';
-}
+import { getBaseApiUrl, API_ENDPOINTS } from '../constants/api';
 
 /**
  * Build a RenderRequest from the URL and panel configuration
@@ -53,7 +47,7 @@ export async function renderPage(
   config: PanelConfig,
   captchaToken?: string
 ): Promise<RenderResponse> {
-  const apiUrl = getApiUrl();
+  const apiUrl = getBaseApiUrl() + API_ENDPOINTS.RENDER;
   const request = buildRenderRequest(url, config, captchaToken);
 
   try {
