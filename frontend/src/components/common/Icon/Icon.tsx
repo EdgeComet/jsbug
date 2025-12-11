@@ -5,8 +5,10 @@ export type IconName =
   | 'chevron-down'
   | 'chevron-up'
   | 'clipboard'
+  | 'columns'
   | 'download'
   | 'file-code'
+  | 'git-compare'
   | 'image'
   | 'info'
   | 'loader'
@@ -88,6 +90,13 @@ function getIconPaths(name: IconName) {
           <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
         </>
       );
+    case 'columns':
+      return (
+        <>
+          <rect x="3" y="3" width="7" height="18" rx="1" />
+          <rect x="14" y="3" width="7" height="18" rx="1" />
+        </>
+      );
     case 'download':
       return (
         <>
@@ -103,6 +112,15 @@ function getIconPaths(name: IconName) {
           <polyline points="14 2 14 8 20 8" />
           <polyline points="10 13 8 15 10 17" />
           <polyline points="14 13 16 15 14 17" />
+        </>
+      );
+    case 'git-compare':
+      return (
+        <>
+          <circle cx="18" cy="18" r="3" />
+          <circle cx="6" cy="6" r="3" />
+          <path d="M6 21V9a9 9 0 009 9" />
+          <path d="M18 3v12a9 9 0 01-9-9" />
         </>
       );
     case 'image':

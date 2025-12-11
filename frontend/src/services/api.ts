@@ -11,7 +11,11 @@ export function getApiUrl(): string {
 /**
  * Build a RenderRequest from the URL and panel configuration
  */
-export function buildRenderRequest(url: string, config: PanelConfig): RenderRequest {
+export function buildRenderRequest(
+  url: string,
+  config: PanelConfig,
+  captchaToken?: string
+): RenderRequest {
   const blockedTypes: string[] = [];
 
   if (config.blocking.imagesMedia) {
@@ -21,7 +25,7 @@ export function buildRenderRequest(url: string, config: PanelConfig): RenderRequ
     blockedTypes.push('stylesheet');
   }
 
-  return {
+  const request: RenderRequest = {
     url,
     js_enabled: config.jsEnabled,
     follow_redirects: false, // Always false per spec
@@ -35,14 +39,25 @@ export function buildRenderRequest(url: string, config: PanelConfig): RenderRequ
     block_social: true,     // Always true
     blocked_types: blockedTypes,
   };
+
+  // Add captcha token if provided
+  if (captchaToken) {
+    request.captcha_token = captchaToken;
+  }
+
+  return request;
 }
 
 /**
  * Send a render request to the API
  */
-export async function renderPage(url: string, config: PanelConfig): Promise<RenderResponse> {
+export async function renderPage(
+  url: string,
+  config: PanelConfig,
+  captchaToken?: string
+): Promise<RenderResponse> {
   const apiUrl = getApiUrl();
-  const request = buildRenderRequest(url, config);
+  const request = buildRenderRequest(url, config, captchaToken);
 
   try {
     const response = await fetch(apiUrl, {

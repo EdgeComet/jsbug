@@ -1,0 +1,33 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 22, 40, 0.7);
+  backdrop-filter: blur(4px);
+}
+
+.modal {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--bg-white, #ffffff);
+  border-radius: 12px;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+/* Dark theme support */
+:global(.dark) .modal {
+  background: var(--bg-card, #1e293b);
+}
+
+.widgetContainer {
+  min-width: 300px;
+  min-height: 65px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

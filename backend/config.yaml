@@ -26,3 +26,7 @@ chrome:
 logging:
   level: "info"
   format: "console"
+
+captcha:
+  enabled: true          # Enable/disable captcha verification
+  secret_key: "1x0000000000000000000000000000000AA"          # Cloudflare Turnstile test key (always passes)

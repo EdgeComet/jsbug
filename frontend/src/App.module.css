@@ -17,7 +17,7 @@
 
 .welcomeContent {
   text-align: center;
-  max-width: 600px;
+  max-width: 800px;
 }
 
 .welcomeIcon {
@@ -35,18 +35,57 @@
   letter-spacing: -0.02em;
 }
 
-.welcomeTagline {
-  font-size: 16px;
-  font-weight: 500;
-  color: var(--text-secondary);
-  margin: 0 0 16px;
+.welcomeHeadline {
+  font-size: 24px;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin: 0 0 8px;
 }
 
-.welcomeDescription {
-  font-size: 15px;
+.welcomeSubheadline {
+  font-size: 16px;
   color: var(--text-muted);
-  line-height: 1.6;
+  margin: 0 0 8px;
+}
+
+.featureCards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  margin-top: 32px;
+}
+
+.featureCard {
+  background: var(--bg-card);
+  border: 1px solid var(--border-light);
+  border-radius: 12px;
+  padding: 24px 20px;
+  text-align: center;
+}
+
+.featureCardIcon {
+  color: var(--accent-coral);
+  margin-bottom: 12px;
+}
+
+.featureCardTitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-dark);
+  margin: 0 0 8px;
+}
+
+.featureCardDesc {
+  font-size: 14px;
+  color: var(--text-muted);
+  line-height: 1.5;
   margin: 0;
+}
+
+.openSourceTagline {
+  margin-top: 32px;
+  font-size: 14px;
+  color: var(--text-muted);
 }
 
 .mainContent {
@@ -113,5 +152,12 @@
 @media (max-width: 768px) {
   .mainContent {
     padding: 16px;
+  }
+
+  .featureCards {
+    grid-template-columns: 1fr;
+    max-width: 320px;
+    margin-left: auto;
+    margin-right: auto;
   }
 }

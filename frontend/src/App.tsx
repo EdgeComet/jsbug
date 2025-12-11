@@ -6,9 +6,14 @@ import type { AppConfig } from './types/config'
 import { Header } from './components/Header/Header'
 import { Panel } from './components/Panel/Panel'
 import { ConfigModal } from './components/ConfigModal/ConfigModal'
+import { TurnstileModal } from './components/TurnstileModal'
 import { useRenderPanel } from './hooks/useRenderPanel'
 import { useRobots } from './hooks/useRobots'
+import { useTurnstile } from './hooks/useTurnstile'
+import { isCaptchaEnabled } from './config/captcha'
 import styles from './App.module.css'
+
+const MAX_CAPTCHA_RETRIES = 3
 
 function AppContent() {
   const { config, updateLeftConfig, updateRightConfig } = useConfig()
@@ -21,8 +26,9 @@ function AppContent() {
   const leftPanel = useRenderPanel()
   const rightPanel = useRenderPanel()
   const robots = useRobots()
+  const turnstile = useTurnstile()
 
-  const isAnalyzing = leftPanel.isLoading || rightPanel.isLoading
+  const isAnalyzing = leftPanel.isLoading || rightPanel.isLoading || turnstile.isLoading
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -45,17 +51,44 @@ function AppContent() {
     leftPanel.data?.technical.statusCode === 200 &&
     rightPanel.data?.technical.statusCode === 200
 
-  const handleCompare = (overrideConfig?: AppConfig) => {
+  const handleCompare = async (overrideConfig?: AppConfig, retryCount = 0) => {
     const effectiveConfig = overrideConfig ?? config
+
+    // Show loading state immediately (reset sets isLoading: true)
     setHasAnalyzed(true)
     leftPanel.reset()
     rightPanel.reset()
     robots.reset()
 
-    // Fire all requests simultaneously (2 renders + 1 robots)
-    leftPanel.render(url, effectiveConfig.left)
-    rightPanel.render(url, effectiveConfig.right)
+    // Get captcha token if enabled
+    let captchaToken: string | undefined
+    if (isCaptchaEnabled()) {
+      const token = await turnstile.getToken()
+      if (token === null) {
+        // User cancelled or timeout - don't proceed
+        return
+      }
+      captchaToken = token
+    }
+
+    // Fire all requests simultaneously (both use same captcha token)
+    const leftPromise = leftPanel.render(url, effectiveConfig.left, captchaToken)
+    const rightPromise = rightPanel.render(url, effectiveConfig.right, captchaToken)
     robots.check(url)
+
+    // Wait for both panels to complete
+    await Promise.all([leftPromise, rightPromise])
+
+    // Check for captcha token errors and retry silently if needed
+    // Note: CAPTCHA_SERVICE_UNAVAILABLE (503) is NOT retried - that's a server error
+    const isCaptchaTokenError = (error: string | null) =>
+      error?.includes('CAPTCHA_REQUIRED') || error?.includes('CAPTCHA_INVALID')
+
+    if ((isCaptchaTokenError(leftPanel.error) || isCaptchaTokenError(rightPanel.error))
+        && retryCount < MAX_CAPTCHA_RETRIES) {
+      // Silent retry - get new token and try again
+      return await handleCompare(overrideConfig, retryCount + 1)
+    }
   }
 
   const handleRetryWithBrowserUA = (side: 'left' | 'right') => {
@@ -88,10 +121,45 @@ function AppContent() {
               <Icon name="bug" size={48} />
             </div>
             <h1 className={styles.welcomeName}>JSBug</h1>
-            <p className={styles.welcomeTagline}>Page Render Comparison</p>
-            <p className={styles.welcomeDescription}>
-              Compare how search engines see your pages with and without JavaScript.
-              Analyze rendering differences, content visibility, and SEO implications.
+            <p className={styles.welcomeHeadline}>See What Search Engines See</p>
+            <p className={styles.welcomeSubheadline}>
+              Debug JavaScript rendering issues before they hurt your SEO
+            </p>
+
+            <div className={styles.featureCards}>
+              <div className={styles.featureCard}>
+                <div className={styles.featureCardIcon}>
+                  <Icon name="columns" size={28} />
+                </div>
+                <h3 className={styles.featureCardTitle}>Compare Side-by-Side</h3>
+                <p className={styles.featureCardDesc}>
+                  View raw HTML vs JavaScript-rendered content instantly
+                </p>
+              </div>
+
+              <div className={styles.featureCard}>
+                <div className={styles.featureCardIcon}>
+                  <Icon name="search" size={28} />
+                </div>
+                <h3 className={styles.featureCardTitle}>Catch SEO Issues</h3>
+                <p className={styles.featureCardDesc}>
+                  Find missing titles, meta tags, and content hidden from crawlers
+                </p>
+              </div>
+
+              <div className={styles.featureCard}>
+                <div className={styles.featureCardIcon}>
+                  <Icon name="git-compare" size={28} />
+                </div>
+                <h3 className={styles.featureCardTitle}>Track Every Change</h3>
+                <p className={styles.featureCardDesc}>
+                  See exactly which links and elements JavaScript modifies
+                </p>
+              </div>
+            </div>
+
+            <p className={styles.openSourceTagline}>
+              Free & open source. Built by the community.
             </p>
           </div>
         </div>
@@ -139,6 +207,13 @@ function AppContent() {
             handleCompare(newConfig)
           }
         }}
+      />
+
+      {/* Turnstile Captcha Modal - only shown when challenge needed */}
+      <TurnstileModal
+        isOpen={turnstile.showModal}
+        containerRef={turnstile.modalContainerRef}
+        onClose={turnstile.closeModal}
       />
     </div>
   )

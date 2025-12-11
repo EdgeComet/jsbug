@@ -15,6 +15,7 @@ export interface RenderRequest {
   block_ads?: boolean;
   block_social?: boolean;
   blocked_types?: string[];
+  captcha_token?: string;
 }
 
 /**

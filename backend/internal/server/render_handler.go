@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"encoding/json"
+	"net"
 	"net/http"
 	"net/url"
 	"strings"
@@ -10,6 +11,7 @@ import (
 
 	"go.uber.org/zap"
 
+	"github.com/user/jsbug/internal/captcha"
 	"github.com/user/jsbug/internal/chrome"
 	"github.com/user/jsbug/internal/config"
 	"github.com/user/jsbug/internal/fetcher"
@@ -24,23 +26,32 @@ type Fetcher interface {
 
 // RenderHandler handles render API requests
 type RenderHandler struct {
-	pool       *chrome.ChromePool
-	fetcher    Fetcher
-	parser     *parser.Parser
-	config     *config.Config
-	logger     *zap.Logger
-	sseManager *SSEManager
+	pool            *chrome.ChromePool
+	fetcher         Fetcher
+	parser          *parser.Parser
+	config          *config.Config
+	logger          *zap.Logger
+	sseManager      *SSEManager
+	captchaVerifier *captcha.Verifier
 }
 
 // NewRenderHandler creates a new RenderHandler
 func NewRenderHandler(pool *chrome.ChromePool, fetcher Fetcher, parser *parser.Parser, cfg *config.Config, logger *zap.Logger) *RenderHandler {
-	return &RenderHandler{
+	h := &RenderHandler{
 		pool:    pool,
 		fetcher: fetcher,
 		parser:  parser,
 		config:  cfg,
 		logger:  logger,
 	}
+
+	// Initialize captcha verifier if enabled
+	if cfg.Captcha.Enabled {
+		h.captchaVerifier = captcha.NewVerifier(cfg.Captcha.SecretKey, logger)
+		logger.Info("Captcha verification enabled")
+	}
+
+	return h
 }
 
 // SetSSEManager sets the SSE manager for publishing progress events
@@ -66,6 +77,26 @@ func (h *RenderHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 
 	// Apply defaults
 	req.ApplyDefaults()
+
+	// Verify captcha if enabled
+	if h.captchaVerifier != nil {
+		if req.CaptchaToken == "" {
+			h.writeError(w, http.StatusForbidden, types.ErrCaptchaRequired, "Captcha token required")
+			return
+		}
+
+		clientIP := getClientIP(r)
+		valid, err := h.captchaVerifier.Verify(r.Context(), req.CaptchaToken, clientIP)
+		if err != nil {
+			h.logger.Warn("Captcha verification error", zap.Error(err))
+			h.writeError(w, http.StatusServiceUnavailable, types.ErrCaptchaServiceUnavailable, "Captcha service temporarily unavailable")
+			return
+		}
+		if !valid {
+			h.writeError(w, http.StatusForbidden, types.ErrCaptchaInvalid, "Captcha verification failed")
+			return
+		}
+	}
 
 	// Validate request
 	if err := h.validateRequest(&req); err != nil {
@@ -466,6 +497,10 @@ func (h *RenderHandler) writeJSON(w http.ResponseWriter, response *types.RenderR
 				statusCode = http.StatusRequestTimeout
 			case types.ErrChromeUnavailable, types.ErrPoolExhausted, types.ErrPoolShuttingDown:
 				statusCode = http.StatusServiceUnavailable
+			case types.ErrCaptchaRequired, types.ErrCaptchaInvalid:
+				statusCode = http.StatusForbidden
+			case types.ErrCaptchaServiceUnavailable:
+				statusCode = http.StatusServiceUnavailable
 			}
 		}
 		w.WriteHeader(statusCode)
@@ -529,4 +564,28 @@ func (h *RenderHandler) publishError(requestID, code, message string) {
 	if h.sseManager != nil && requestID != "" {
 		h.sseManager.PublishError(requestID, code, message)
 	}
+}
+
+// getClientIP extracts the client IP address from the request
+// Checks common proxy headers before falling back to RemoteAddr
+func getClientIP(r *http.Request) string {
+	// Check CF-Connecting-IP first (if behind Cloudflare)
+	if ip := r.Header.Get("CF-Connecting-IP"); ip != "" {
+		return ip
+	}
+	// Check X-Forwarded-For
+	if xff := r.Header.Get("X-Forwarded-For"); xff != "" {
+		// First IP in the list is the original client
+		if idx := strings.Index(xff, ","); idx > 0 {
+			return strings.TrimSpace(xff[:idx])
+		}
+		return strings.TrimSpace(xff)
+	}
+	// Check X-Real-IP
+	if ip := r.Header.Get("X-Real-IP"); ip != "" {
+		return ip
+	}
+	// Fall back to RemoteAddr
+	host, _, _ := net.SplitHostPort(r.RemoteAddr)
+	return host
 }

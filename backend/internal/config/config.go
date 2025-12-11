@@ -15,6 +15,7 @@ type Config struct {
 	Server  ServerConfig  `yaml:"server"`
 	Chrome  ChromeConfig  `yaml:"chrome"`
 	Logging LoggingConfig `yaml:"logging"`
+	Captcha CaptchaConfig `yaml:"captcha"`
 }
 
 // ServerConfig contains HTTP server settings
@@ -50,6 +51,12 @@ type ChromeConfig struct {
 type LoggingConfig struct {
 	Level  string `yaml:"level"`
 	Format string `yaml:"format"`
+}
+
+// CaptchaConfig contains Cloudflare Turnstile captcha settings
+type CaptchaConfig struct {
+	Enabled   bool   `yaml:"enabled"`
+	SecretKey string `yaml:"secret_key"`
 }
 
 // Valid log levels
@@ -221,6 +228,14 @@ func (c *Config) applyEnvOverrides() {
 	if corsOrigins := os.Getenv("JSBUG_CORS_ORIGINS"); corsOrigins != "" {
 		c.Server.CORSOrigins = strings.Split(corsOrigins, ",")
 	}
+
+	// Captcha overrides
+	if captchaEnabled := os.Getenv("JSBUG_CAPTCHA_ENABLED"); captchaEnabled != "" {
+		c.Captcha.Enabled = strings.ToLower(captchaEnabled) == "true"
+	}
+	if captchaSecret := os.Getenv("JSBUG_CAPTCHA_SECRET_KEY"); captchaSecret != "" {
+		c.Captcha.SecretKey = captchaSecret
+	}
 }
 
 // Validate checks if the configuration is valid
@@ -267,6 +282,11 @@ func (c *Config) Validate() error {
 	// Validate log format
 	if !validLogFormats[c.Logging.Format] {
 		return fmt.Errorf("invalid log format: %s (must be one of: json, console)", c.Logging.Format)
+	}
+
+	// Validate captcha config
+	if c.Captcha.Enabled && c.Captcha.SecretKey == "" {
+		return fmt.Errorf("captcha is enabled but secret_key is not set")
 	}
 
 	return nil
