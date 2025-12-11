@@ -6,11 +6,10 @@ export const defaultLeftConfig: PanelConfig = {
   userAgent: 'chrome-mobile',
   timeout: 15,
   waitFor: 'networkIdle',
-  // WARNING: If imagesMedia/css defaults change, update parsePanelFromParams in urlState.ts
-  // The parser hardcodes false for missing URL params, assuming these defaults are false
+  // WARNING: If imagesMedia default changes, update parsePanelFromParams in urlState.ts
+  // The parser hardcodes false for missing URL params, assuming this default is false
   blocking: {
     imagesMedia: false,
-    css: false,
     trackingScripts: true,
   },
 };
@@ -20,11 +19,10 @@ export const defaultRightConfig: PanelConfig = {
   userAgent: 'chrome-mobile',
   timeout: 10,
   waitFor: 'load',
-  // WARNING: If imagesMedia/css defaults change, update parsePanelFromParams in urlState.ts
-  // The parser hardcodes false for missing URL params, assuming these defaults are false
+  // WARNING: If imagesMedia default changes, update parsePanelFromParams in urlState.ts
+  // The parser hardcodes false for missing URL params, assuming this default is false
   blocking: {
     imagesMedia: false,
-    css: false,
     trackingScripts: true,
   },
 };

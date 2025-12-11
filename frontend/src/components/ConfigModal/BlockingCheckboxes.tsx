@@ -2,7 +2,6 @@ import styles from './ConfigModal.module.css';
 
 interface BlockingState {
   imagesMedia: boolean;
-  css: boolean;
   trackingScripts: boolean;
 }
 
@@ -25,7 +24,6 @@ export function BlockingCheckboxes({ blocking, onChange, disabled }: BlockingChe
 
   const items = [
     { key: 'imagesMedia' as const, label: 'Images & Media', locked: false },
-    { key: 'css' as const, label: 'CSS', locked: false },
     { key: 'trackingScripts' as const, label: 'Tracking scripts', locked: true },
   ];
 

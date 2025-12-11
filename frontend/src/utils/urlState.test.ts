@@ -89,7 +89,7 @@ describe('serializePanelToParams', () => {
     userAgent: 'chrome-mobile',
     timeout: 15,
     waitFor: 'networkIdle',
-    blocking: { imagesMedia: false, css: false, trackingScripts: true },
+    blocking: { imagesMedia: false, trackingScripts: true },
   };
 
   it('should return empty params when panel matches defaults exactly', () => {
@@ -129,25 +129,23 @@ describe('serializePanelToParams', () => {
   it('should serialize blocking booleans to 1/0', () => {
     const panel: PanelConfig = {
       ...defaultLeftConfig,
-      blocking: { imagesMedia: true, css: true, trackingScripts: true },
+      blocking: { imagesMedia: true, trackingScripts: true },
     };
     const params = serializePanelToParams(panel, defaultLeftConfig, 'l');
     expect(params.get('l.bi')).toBe('1');
-    expect(params.get('l.bc')).toBe('1');
   });
 
   it('should serialize blocking false as 0 when default is true', () => {
     const defaultWithBlocking: PanelConfig = {
       ...defaultLeftConfig,
-      blocking: { imagesMedia: true, css: true, trackingScripts: true },
+      blocking: { imagesMedia: true, trackingScripts: true },
     };
     const panel: PanelConfig = {
       ...defaultLeftConfig,
-      blocking: { imagesMedia: false, css: false, trackingScripts: true },
+      blocking: { imagesMedia: false, trackingScripts: true },
     };
     const params = serializePanelToParams(panel, defaultWithBlocking, 'l');
     expect(params.get('l.bi')).toBe('0');
-    expect(params.get('l.bc')).toBe('0');
   });
 
   it('should only include customUserAgent when userAgent is custom', () => {
@@ -197,14 +195,14 @@ describe('serializeToUrl', () => {
       userAgent: 'chrome-mobile',
       timeout: 15,
       waitFor: 'networkIdle',
-      blocking: { imagesMedia: false, css: false, trackingScripts: true },
+      blocking: { imagesMedia: false, trackingScripts: true },
     },
     right: {
       jsEnabled: false,
       userAgent: 'chrome-mobile',
       timeout: 10,
       waitFor: 'load',
-      blocking: { imagesMedia: false, css: false, trackingScripts: true },
+      blocking: { imagesMedia: false, trackingScripts: true },
     },
   };
 
@@ -328,11 +326,10 @@ describe('parsePanelFromParams', () => {
   });
 
   it('should parse blocking booleans', () => {
-    const params = new URLSearchParams('l.bi=1&l.bc=0');
+    const params = new URLSearchParams('l.bi=1');
     const result = parsePanelFromParams(params, 'l');
     expect(result.blocking).toEqual({
       imagesMedia: true,
-      css: false,
       trackingScripts: true,
     });
   });
@@ -488,14 +485,14 @@ describe('parseUrlState', () => {
         userAgent: 'chrome-mobile',
         timeout: 15,
         waitFor: 'networkIdle',
-        blocking: { imagesMedia: false, css: false, trackingScripts: true },
+        blocking: { imagesMedia: false, trackingScripts: true },
       },
       right: {
         jsEnabled: false,
         userAgent: 'chrome-mobile',
         timeout: 10,
         waitFor: 'load',
-        blocking: { imagesMedia: false, css: false, trackingScripts: true },
+        blocking: { imagesMedia: false, trackingScripts: true },
       },
     };
 
@@ -530,14 +527,14 @@ describe('parseUrlState', () => {
         userAgent: 'chrome-mobile',
         timeout: 15,
         waitFor: 'networkIdle',
-        blocking: { imagesMedia: false, css: false, trackingScripts: true },
+        blocking: { imagesMedia: false, trackingScripts: true },
       },
       right: {
         jsEnabled: false,
         userAgent: 'chrome-mobile',
         timeout: 10,
         waitFor: 'load',
-        blocking: { imagesMedia: false, css: false, trackingScripts: true },
+        blocking: { imagesMedia: false, trackingScripts: true },
       },
     };
 
@@ -600,14 +597,14 @@ describe('parseUrlState', () => {
         userAgent: 'chrome-mobile',
         timeout: 15,
         waitFor: 'networkIdle',
-        blocking: { imagesMedia: false, css: false, trackingScripts: true },
+        blocking: { imagesMedia: false, trackingScripts: true },
       },
       right: {
         jsEnabled: false,
         userAgent: 'chrome-mobile',
         timeout: 10,
         waitFor: 'load',
-        blocking: { imagesMedia: false, css: false, trackingScripts: true },
+        blocking: { imagesMedia: false, trackingScripts: true },
       },
     };
 

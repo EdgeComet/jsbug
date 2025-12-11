@@ -9,7 +9,6 @@ export interface PanelConfig {
   waitFor: WaitEvent;
   blocking: {
     imagesMedia: boolean;
-    css: boolean;
     trackingScripts: boolean; // Always true, user can't change
   };
 }

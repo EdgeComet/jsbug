@@ -51,7 +51,6 @@ export const PARAM_KEYS = {
   customUserAgent: 'cua',
   waitFor: 'wf',
   blockImages: 'bi',
-  blockCSS: 'bc',
 } as const;
 
 /**
@@ -92,10 +91,6 @@ export function serializePanelToParams(
   // Blocking options
   if (panel.blocking.imagesMedia !== defaults.blocking.imagesMedia) {
     params.set(`${prefix}.${PARAM_KEYS.blockImages}`, panel.blocking.imagesMedia ? '1' : '0');
-  }
-
-  if (panel.blocking.css !== defaults.blocking.css) {
-    params.set(`${prefix}.${PARAM_KEYS.blockCSS}`, panel.blocking.css ? '1' : '0');
   }
 
   return params;
@@ -183,12 +178,10 @@ export function parsePanelFromParams(
 
   // Blocking options
   const blockImages = params.get(`${prefix}.${PARAM_KEYS.blockImages}`);
-  const blockCSS = params.get(`${prefix}.${PARAM_KEYS.blockCSS}`);
 
-  if (blockImages !== null || blockCSS !== null) {
+  if (blockImages !== null) {
     result.blocking = {
       imagesMedia: blockImages === '1',
-      css: blockCSS === '1',
       trackingScripts: true, // Always true
     };
   }

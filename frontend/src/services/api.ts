@@ -21,9 +21,6 @@ export function buildRenderRequest(
   if (config.blocking.imagesMedia) {
     blockedTypes.push('image');
   }
-  if (config.blocking.css) {
-    blockedTypes.push('stylesheet');
-  }
 
   const request: RenderRequest = {
     url,
