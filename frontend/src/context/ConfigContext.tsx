@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, ReactNode } from 'react';
 import type { AppConfig, PanelConfig } from '../types/config';
 
-const defaultPanelConfig: PanelConfig = {
+export const defaultLeftConfig: PanelConfig = {
   jsEnabled: true,
   userAgent: 'chrome-mobile',
   timeout: 15,
@@ -9,25 +9,25 @@ const defaultPanelConfig: PanelConfig = {
   blocking: {
     imagesMedia: false,
     css: false,
-    trackingScripts: true, // Always checked
+    trackingScripts: true,
+  },
+};
+
+export const defaultRightConfig: PanelConfig = {
+  jsEnabled: false,
+  userAgent: 'chrome-mobile',
+  timeout: 10,
+  waitFor: 'load',
+  blocking: {
+    imagesMedia: false,
+    css: false,
+    trackingScripts: true,
   },
 };
 
 const defaultConfig: AppConfig = {
-  left: {
-    ...defaultPanelConfig,
-    jsEnabled: true,
-    userAgent: 'chrome-mobile',
-    timeout: 15,
-    waitFor: 'networkIdle',
-  },
-  right: {
-    ...defaultPanelConfig,
-    jsEnabled: false,
-    userAgent: 'chrome-mobile',
-    timeout: 10,
-    waitFor: 'load',
-  },
+  left: defaultLeftConfig,
+  right: defaultRightConfig,
 };
 
 interface ConfigContextType {

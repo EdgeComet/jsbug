@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { Icon } from './components/common/Icon'
 import { EscapingBug } from './components/Header/EscapingBug'
-import { ConfigProvider, useConfig } from './context/ConfigContext'
+import { ConfigProvider, useConfig, defaultConfig, defaultLeftConfig, defaultRightConfig } from './context/ConfigContext'
+import { serializeToUrl, parseUrlState } from './utils/urlState'
 import { ThemeProvider } from './context/ThemeContext'
 import type { AppConfig } from './types/config'
 import { Header } from './components/Header/Header'
@@ -17,12 +18,13 @@ import styles from './App.module.css'
 const MAX_CAPTCHA_RETRIES = 3
 
 function AppContent() {
-  const { config, updateLeftConfig, updateRightConfig } = useConfig()
-  const [url, setUrl] = useState('https://example.com/')
+  const { config, setConfig, updateLeftConfig, updateRightConfig } = useConfig()
+  const [url, setUrl] = useState('')
   const [isUrlValid, setIsUrlValid] = useState(true)
   const [isConfigOpen, setIsConfigOpen] = useState(false)
   const [hasAnalyzed, setHasAnalyzed] = useState(false)
   const urlInputRef = useRef<HTMLInputElement>(null)
+  const initializedRef = useRef(false)
 
   const leftPanel = useRenderPanel()
   const rightPanel = useRenderPanel()
@@ -48,12 +50,87 @@ function AppContent() {
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
   }, [])
+
+  // Parse URL on mount and auto-start if target present
+  useEffect(() => {
+    if (initializedRef.current) return
+    initializedRef.current = true
+
+    const { targetUrl, leftConfig, rightConfig } = parseUrlState(
+      window.location.pathname,
+      window.location.hash
+    )
+
+    if (targetUrl) {
+      // Merge parsed config with defaults
+      const mergedConfig: AppConfig = {
+        left: { ...defaultLeftConfig, ...leftConfig },
+        right: { ...defaultRightConfig, ...rightConfig },
+      }
+
+      setUrl(targetUrl)
+      setConfig(mergedConfig)
+
+      // Auto-start analysis (defer to allow state to settle)
+      setTimeout(() => {
+        handleCompare(mergedConfig)
+      }, 0)
+    } else {
+      // No target URL, set default
+      setUrl('https://example.com/')
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // Handle browser back/forward
+  useEffect(() => {
+    const handlePopState = () => {
+      const { targetUrl, leftConfig, rightConfig } = parseUrlState(
+        window.location.pathname,
+        window.location.hash
+      )
+
+      if (targetUrl) {
+        const mergedConfig: AppConfig = {
+          left: { ...defaultLeftConfig, ...leftConfig },
+          right: { ...defaultRightConfig, ...rightConfig },
+        }
+
+        setUrl(targetUrl)
+        setConfig(mergedConfig)
+
+        // Trigger re-analysis (don't use handleCompare to avoid pushing new history entry)
+        setHasAnalyzed(true)
+        leftPanel.reset()
+        rightPanel.reset()
+        robots.reset()
+        leftPanel.render(targetUrl, mergedConfig.left)
+        rightPanel.render(targetUrl, mergedConfig.right)
+        robots.check(targetUrl)
+      } else {
+        // Navigated to root, show welcome
+        setUrl('https://example.com/')
+        setHasAnalyzed(false)
+      }
+    }
+
+    window.addEventListener('popstate', handlePopState)
+    return () => window.removeEventListener('popstate', handlePopState)
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
   const bothPanelsSuccess =
     leftPanel.data?.technical.statusCode === 200 &&
     rightPanel.data?.technical.statusCode === 200
 
   const handleCompare = async (overrideConfig?: AppConfig, retryCount = 0) => {
     const effectiveConfig = overrideConfig ?? config
+
+    // Update browser URL (only on first attempt, not retries)
+    if (retryCount === 0) {
+      const newUrl = serializeToUrl(url, effectiveConfig, defaultConfig)
+      window.history.pushState(null, '', newUrl)
+    }
 
     // Show loading state immediately (reset sets isLoading: true)
     setHasAnalyzed(true)
