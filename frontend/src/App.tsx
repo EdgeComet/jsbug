@@ -121,7 +121,7 @@ function AppContent() {
               <Icon name="bug" size={48} />
             </div>
             <h1 className={styles.welcomeName}>JSBug</h1>
-            <p className={styles.welcomeHeadline}>See What Search Engines See</p>
+            <p className={styles.welcomeHeadline}>See What Search Engines &amp; AI Bots See</p>
             <p className={styles.welcomeSubheadline}>
               Debug JavaScript rendering issues before they hurt your SEO
             </p>
