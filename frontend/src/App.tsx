@@ -84,7 +84,7 @@ function AppContent() {
 
   // Handle browser back/forward
   useEffect(() => {
-    const handlePopState = () => {
+    const handlePopState = async () => {
       const { targetUrl, leftConfig, rightConfig } = parseUrlState(
         window.location.pathname,
         window.location.hash
@@ -104,8 +104,22 @@ function AppContent() {
         leftPanel.reset()
         rightPanel.reset()
         robots.reset()
-        leftPanel.render(targetUrl, mergedConfig.left)
-        rightPanel.render(targetUrl, mergedConfig.right)
+
+        // Get captcha tokens if enabled (need two separate tokens - Turnstile tokens are single-use!)
+        let leftCaptchaToken: string | undefined
+        let rightCaptchaToken: string | undefined
+        if (isCaptchaEnabled()) {
+          const token1 = await turnstile.getToken()
+          if (token1 === null) return
+          leftCaptchaToken = token1
+
+          const token2 = await turnstile.getToken()
+          if (token2 === null) return
+          rightCaptchaToken = token2
+        }
+
+        leftPanel.render(targetUrl, mergedConfig.left, leftCaptchaToken)
+        rightPanel.render(targetUrl, mergedConfig.right, rightCaptchaToken)
         robots.check(targetUrl)
       } else {
         // Navigated to root, show welcome
@@ -139,20 +153,28 @@ function AppContent() {
     rightPanel.reset()
     robots.reset()
 
-    // Get captcha token if enabled
-    let captchaToken: string | undefined
+    // Get captcha tokens if enabled (need two separate tokens - Turnstile tokens are single-use!)
+    let leftCaptchaToken: string | undefined
+    let rightCaptchaToken: string | undefined
     if (isCaptchaEnabled()) {
-      const token = await turnstile.getToken()
-      if (token === null) {
-        // User cancelled or timeout - don't proceed
-        return
+      // Get first token for left panel
+      const token1 = await turnstile.getToken()
+      if (token1 === null) {
+        return // User cancelled or timeout
       }
-      captchaToken = token
+      leftCaptchaToken = token1
+
+      // Get second token for right panel
+      const token2 = await turnstile.getToken()
+      if (token2 === null) {
+        return // User cancelled or timeout
+      }
+      rightCaptchaToken = token2
     }
 
-    // Fire all requests simultaneously (both use same captcha token)
-    const leftPromise = leftPanel.render(effectiveUrl, effectiveConfig.left, captchaToken)
-    const rightPromise = rightPanel.render(effectiveUrl, effectiveConfig.right, captchaToken)
+    // Fire all requests simultaneously (each with its own token)
+    const leftPromise = leftPanel.render(effectiveUrl, effectiveConfig.left, leftCaptchaToken)
+    const rightPromise = rightPanel.render(effectiveUrl, effectiveConfig.right, rightCaptchaToken)
     robots.check(effectiveUrl)
 
     // Wait for both panels to complete
