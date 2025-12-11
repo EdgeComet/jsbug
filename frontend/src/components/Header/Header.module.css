@@ -36,6 +36,24 @@
   transform: translateY(1px);
 }
 
+/* Bug leg animation - wiggles briefly every 2 seconds */
+@keyframes legWiggle {
+  0%, 20%, 100% { transform: rotate(0deg); }
+  5% { transform: rotate(12deg); }
+  10% { transform: rotate(-8deg); }
+  15% { transform: rotate(6deg); }
+}
+
+.leftLegs {
+  transform-origin: 6px 15px;
+  animation: legWiggle 2s ease-in-out infinite;
+}
+
+.rightLegs {
+  transform-origin: 18px 15px;
+  animation: legWiggle 2s ease-in-out infinite reverse;
+}
+
 .brandName {
   font-size: 18px;
   font-weight: 700;
