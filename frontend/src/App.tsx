@@ -12,10 +12,11 @@ import { TurnstileModal } from './components/TurnstileModal'
 import { useRenderPanel } from './hooks/useRenderPanel'
 import { useRobots } from './hooks/useRobots'
 import { useTurnstile } from './hooks/useTurnstile'
+import { useSession } from './hooks/useSession'
 import { isCaptchaEnabled } from './config/captcha'
 import styles from './App.module.css'
 
-const MAX_CAPTCHA_RETRIES = 3
+const MAX_SESSION_RETRIES = 3
 
 function AppContent() {
   const { config, setConfig, updateLeftConfig, updateRightConfig } = useConfig()
@@ -30,6 +31,7 @@ function AppContent() {
   const rightPanel = useRenderPanel()
   const robots = useRobots()
   const turnstile = useTurnstile()
+  const session = useSession()
 
   const isAnalyzing = leftPanel.isLoading || rightPanel.isLoading || turnstile.isLoading
 
@@ -105,21 +107,24 @@ function AppContent() {
         rightPanel.reset()
         robots.reset()
 
-        // Get captcha tokens if enabled (need two separate tokens - Turnstile tokens are single-use!)
-        let leftCaptchaToken: string | undefined
-        let rightCaptchaToken: string | undefined
+        // Get session token if captcha is enabled
+        let sessionToken: string | undefined
         if (isCaptchaEnabled()) {
-          const token1 = await turnstile.getToken()
-          if (token1 === null) return
-          leftCaptchaToken = token1
-
-          const token2 = await turnstile.getToken()
-          if (token2 === null) return
-          rightCaptchaToken = token2
+          // Try to use existing valid session token
+          sessionToken = session.getValidToken() ?? undefined
+          if (!sessionToken) {
+            // No valid token - get a Turnstile token and create new session
+            const turnstileToken = await turnstile.getToken()
+            if (turnstileToken === null) return
+            const newToken = await session.createSession(turnstileToken)
+            if (newToken === null) return
+            sessionToken = newToken
+          }
         }
 
-        leftPanel.render(targetUrl, mergedConfig.left, leftCaptchaToken)
-        rightPanel.render(targetUrl, mergedConfig.right, rightCaptchaToken)
+        // Use same session token for both panels
+        leftPanel.render(targetUrl, mergedConfig.left, sessionToken)
+        rightPanel.render(targetUrl, mergedConfig.right, sessionToken)
         robots.check(targetUrl)
       } else {
         // Navigated to root, show welcome
@@ -153,41 +158,43 @@ function AppContent() {
     rightPanel.reset()
     robots.reset()
 
-    // Get captcha tokens if enabled (need two separate tokens - Turnstile tokens are single-use!)
-    let leftCaptchaToken: string | undefined
-    let rightCaptchaToken: string | undefined
+    // Get session token if captcha is enabled
+    let sessionToken: string | undefined
     if (isCaptchaEnabled()) {
-      // Get first token for left panel
-      const token1 = await turnstile.getToken()
-      if (token1 === null) {
-        return // User cancelled or timeout
+      // Try to use existing valid session token
+      sessionToken = session.getValidToken() ?? undefined
+      if (!sessionToken) {
+        // No valid token - get a Turnstile token and create new session
+        const turnstileToken = await turnstile.getToken()
+        if (turnstileToken === null) {
+          return // User cancelled or timeout
+        }
+        const newToken = await session.createSession(turnstileToken)
+        if (newToken === null) {
+          return // Session creation failed
+        }
+        sessionToken = newToken
       }
-      leftCaptchaToken = token1
-
-      // Get second token for right panel
-      const token2 = await turnstile.getToken()
-      if (token2 === null) {
-        return // User cancelled or timeout
-      }
-      rightCaptchaToken = token2
     }
 
-    // Fire all requests simultaneously (each with its own token)
-    const leftPromise = leftPanel.render(effectiveUrl, effectiveConfig.left, leftCaptchaToken)
-    const rightPromise = rightPanel.render(effectiveUrl, effectiveConfig.right, rightCaptchaToken)
+    // Fire all requests simultaneously using the same session token
+    const leftPromise = leftPanel.render(effectiveUrl, effectiveConfig.left, sessionToken)
+    const rightPromise = rightPanel.render(effectiveUrl, effectiveConfig.right, sessionToken)
     robots.check(effectiveUrl)
 
     // Wait for both panels to complete
     await Promise.all([leftPromise, rightPromise])
 
-    // Check for captcha token errors and retry silently if needed
-    // Note: CAPTCHA_SERVICE_UNAVAILABLE (503) is NOT retried - that's a server error
-    const isCaptchaTokenError = (error: string | null) =>
-      error?.includes('CAPTCHA_REQUIRED') || error?.includes('CAPTCHA_INVALID')
+    // Check for session token errors and retry silently if needed
+    const isSessionTokenError = (error: string | null) =>
+      error?.includes('SESSION_TOKEN_REQUIRED') ||
+      error?.includes('SESSION_TOKEN_INVALID') ||
+      error?.includes('SESSION_TOKEN_EXPIRED')
 
-    if ((isCaptchaTokenError(leftPanel.error) || isCaptchaTokenError(rightPanel.error))
-        && retryCount < MAX_CAPTCHA_RETRIES) {
-      // Silent retry - get new token and try again
+    if ((isSessionTokenError(leftPanel.error) || isSessionTokenError(rightPanel.error))
+        && retryCount < MAX_SESSION_RETRIES) {
+      // Clear invalid session and retry with new one
+      session.clearSession()
       return await handleCompare(overrideConfig, urlOverride, retryCount + 1)
     }
   }

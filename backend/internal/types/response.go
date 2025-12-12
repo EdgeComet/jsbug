@@ -14,9 +14,9 @@ const (
 	ErrDomainNotFound    = "DOMAIN_NOT_FOUND"
 	ErrPoolExhausted     = "POOL_EXHAUSTED"
 	ErrPoolShuttingDown  = "POOL_SHUTTING_DOWN"
-	ErrCaptchaRequired           = "CAPTCHA_REQUIRED"
-	ErrCaptchaInvalid            = "CAPTCHA_INVALID"
-	ErrCaptchaServiceUnavailable = "CAPTCHA_SERVICE_UNAVAILABLE"
+	ErrSessionTokenRequired = "SESSION_TOKEN_REQUIRED"
+	ErrSessionTokenInvalid  = "SESSION_TOKEN_INVALID"
+	ErrSessionTokenExpired  = "SESSION_TOKEN_EXPIRED"
 )
 
 // MaxBodyTextBytes is the maximum size for extracted body text (3MB)

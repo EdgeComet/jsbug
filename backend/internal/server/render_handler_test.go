@@ -42,7 +42,7 @@ func TestNewRenderHandler(t *testing.T) {
 	cfg := testConfig()
 	p := parser.NewParser()
 
-	handler := NewRenderHandler(nil, nil, p, cfg, logger)
+	handler := NewRenderHandler(nil, nil, p, cfg, logger, nil)
 
 	if handler == nil {
 		t.Fatal("NewRenderHandler() returned nil")
@@ -59,7 +59,7 @@ func TestRenderHandler_InvalidMethod(t *testing.T) {
 	logger := zap.NewNop()
 	cfg := testConfig()
 	p := parser.NewParser()
-	handler := NewRenderHandler(nil, nil, p, cfg, logger)
+	handler := NewRenderHandler(nil, nil, p, cfg, logger, nil)
 
 	req := httptest.NewRequest(http.MethodGet, "/api/render", nil)
 	w := httptest.NewRecorder()
@@ -75,7 +75,7 @@ func TestRenderHandler_InvalidJSON(t *testing.T) {
 	logger := zap.NewNop()
 	cfg := testConfig()
 	p := parser.NewParser()
-	handler := NewRenderHandler(nil, nil, p, cfg, logger)
+	handler := NewRenderHandler(nil, nil, p, cfg, logger, nil)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/render", bytes.NewBufferString("invalid json"))
 	w := httptest.NewRecorder()
@@ -102,7 +102,7 @@ func TestRenderHandler_InvalidURL(t *testing.T) {
 			logger := zap.NewNop()
 			cfg := testConfig()
 			p := parser.NewParser()
-			handler := NewRenderHandler(nil, nil, p, cfg, logger)
+			handler := NewRenderHandler(nil, nil, p, cfg, logger, nil)
 
 			body := map[string]interface{}{
 				"url": tt.url,
@@ -146,7 +146,7 @@ func TestRenderHandler_InvalidTimeout(t *testing.T) {
 			logger := zap.NewNop()
 			cfg := testConfig()
 			p := parser.NewParser()
-			handler := NewRenderHandler(nil, nil, p, cfg, logger)
+			handler := NewRenderHandler(nil, nil, p, cfg, logger, nil)
 
 			body := map[string]interface{}{
 				"url":     "https://example.com",
@@ -177,7 +177,7 @@ func TestRenderHandler_InvalidWaitEvent(t *testing.T) {
 	logger := zap.NewNop()
 	cfg := testConfig()
 	p := parser.NewParser()
-	handler := NewRenderHandler(nil, nil, p, cfg, logger)
+	handler := NewRenderHandler(nil, nil, p, cfg, logger, nil)
 
 	body := map[string]interface{}{
 		"url":        "https://example.com",
@@ -208,7 +208,7 @@ func TestRenderHandler_JSRender_PoolUnavailable(t *testing.T) {
 	p := parser.NewParser()
 
 	// Handler with nil pool
-	handler := NewRenderHandler(nil, nil, p, cfg, logger)
+	handler := NewRenderHandler(nil, nil, p, cfg, logger, nil)
 
 	body := map[string]interface{}{
 		"url":        "https://example.com",
@@ -241,7 +241,7 @@ func TestRenderHandler_JSRender_PoolExhausted(t *testing.T) {
 	// Create a mock pool that returns ErrNoInstanceAvailable
 	pool := createMockExhaustedPool(logger)
 
-	handler := NewRenderHandler(pool, nil, p, cfg, logger)
+	handler := NewRenderHandler(pool, nil, p, cfg, logger, nil)
 
 	body := map[string]interface{}{
 		"url":        "https://example.com",
@@ -274,7 +274,7 @@ func TestRenderHandler_JSRender_PoolShuttingDown(t *testing.T) {
 	// Create a mock pool that returns ErrPoolShuttingDown
 	pool := createMockShuttingDownPool(logger)
 
-	handler := NewRenderHandler(pool, nil, p, cfg, logger)
+	handler := NewRenderHandler(pool, nil, p, cfg, logger, nil)
 
 	body := map[string]interface{}{
 		"url":        "https://example.com",
@@ -325,7 +325,7 @@ func TestRenderHandler_Fetch_Success(t *testing.T) {
 		},
 	}
 
-	handler := NewRenderHandler(nil, mockFetcher, p, cfg, logger)
+	handler := NewRenderHandler(nil, mockFetcher, p, cfg, logger, nil)
 
 	body := map[string]interface{}{
 		"url":        "https://example.com",
@@ -379,7 +379,7 @@ func TestRenderHandler_Fetch_WithHeaders(t *testing.T) {
 		},
 	}
 
-	handler := NewRenderHandler(nil, mockFetcher, p, cfg, logger)
+	handler := NewRenderHandler(nil, mockFetcher, p, cfg, logger, nil)
 
 	body := map[string]interface{}{
 		"url":        "https://example.com",
@@ -412,7 +412,7 @@ func TestRenderHandler_Fetch_Timeout(t *testing.T) {
 		err: errors.New("Client.Timeout exceeded"),
 	}
 
-	handler := NewRenderHandler(nil, mockFetcher, p, cfg, logger)
+	handler := NewRenderHandler(nil, mockFetcher, p, cfg, logger, nil)
 
 	body := map[string]interface{}{
 		"url":        "https://example.com",
@@ -446,7 +446,7 @@ func TestRenderHandler_Fetch_Error(t *testing.T) {
 		err: errors.New("connection refused"),
 	}
 
-	handler := NewRenderHandler(nil, mockFetcher, p, cfg, logger)
+	handler := NewRenderHandler(nil, mockFetcher, p, cfg, logger, nil)
 
 	body := map[string]interface{}{
 		"url":        "https://example.com",
@@ -475,7 +475,7 @@ func TestRenderHandler_ValidateRequest(t *testing.T) {
 	logger := zap.NewNop()
 	cfg := testConfig()
 	p := parser.NewParser()
-	handler := NewRenderHandler(nil, nil, p, cfg, logger)
+	handler := NewRenderHandler(nil, nil, p, cfg, logger, nil)
 
 	tests := []struct {
 		name        string

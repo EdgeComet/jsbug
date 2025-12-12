@@ -70,7 +70,7 @@ type RenderRequest struct {
 	BlockAds        bool     `json:"block_ads,omitempty"`
 	BlockSocial     bool     `json:"block_social,omitempty"`
 	BlockedTypes    []string `json:"blocked_types,omitempty"`
-	CaptchaToken    string   `json:"captcha_token,omitempty"`
+	SessionToken    string   `json:"session_token,omitempty"`
 }
 
 // ShouldFollowRedirects returns whether to follow redirects (default true)

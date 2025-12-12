@@ -74,6 +74,11 @@ func (s *Server) SetRobotsHandler(handler *RobotsHandler) {
 	s.mux.Handle("/api/robots", handler)
 }
 
+// SetAuthHandler sets the auth handler for session token creation
+func (s *Server) SetAuthHandler(handler *AuthHandler) {
+	s.mux.Handle("/api/auth/captcha", handler)
+}
+
 // SSEManager returns the server's SSE manager
 func (s *Server) SSEManager() *SSEManager {
 	return s.sseManager

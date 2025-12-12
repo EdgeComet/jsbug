@@ -28,7 +28,7 @@ export interface UseRenderPanelResult {
   data: PanelData | null;
   error: string | null;
   isLoading: boolean;
-  render: (url: string, config: PanelConfig, captchaToken?: string) => Promise<void>;
+  render: (url: string, config: PanelConfig, sessionToken?: string) => Promise<void>;
   reset: () => void;
 }
 
@@ -131,12 +131,12 @@ export function useRenderPanel(): UseRenderPanelResult {
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  const render = useCallback(async (url: string, config: PanelConfig, captchaToken?: string) => {
+  const render = useCallback(async (url: string, config: PanelConfig, sessionToken?: string) => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const response = await renderPage(url, config, captchaToken);
+      const response = await renderPage(url, config, sessionToken);
 
       if (response.success && response.data) {
         const transformedData = transformResponse(response.data, config.jsEnabled);

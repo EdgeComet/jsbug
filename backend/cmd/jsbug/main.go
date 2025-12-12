@@ -12,6 +12,7 @@ import (
 
 	"go.uber.org/zap"
 
+	"github.com/user/jsbug/internal/captcha"
 	"github.com/user/jsbug/internal/chrome"
 	"github.com/user/jsbug/internal/config"
 	"github.com/user/jsbug/internal/fetcher"
@@ -19,6 +20,7 @@ import (
 	"github.com/user/jsbug/internal/parser"
 	"github.com/user/jsbug/internal/robots"
 	"github.com/user/jsbug/internal/server"
+	"github.com/user/jsbug/internal/session"
 )
 
 func main() {
@@ -66,11 +68,33 @@ func main() {
 	// Initialize HTML parser
 	htmlParser := parser.NewParser()
 
+	// Initialize session token manager if captcha is enabled
+	var tokenManager *session.TokenManager
+	var captchaVerifier *captcha.Verifier
+	if cfg.Captcha.Enabled {
+		tokenManager, err = session.NewTokenManager(cfg.Captcha.SecretKey, log)
+		if err != nil {
+			log.Fatal("Failed to create token manager",
+				zap.Error(err),
+				zap.Int("key_length", len(cfg.Captcha.SecretKey)),
+				zap.Int("required_min", session.MinSecretKeyLength),
+			)
+		}
+		captchaVerifier = captcha.NewVerifier(cfg.Captcha.SecretKey, log)
+		log.Info("Captcha/session token verification enabled")
+	}
+
 	// Create server (SSE manager is created internally)
 	srv := server.New(cfg, log)
 
+	// Create and configure auth handler (if captcha enabled)
+	if captchaVerifier != nil && tokenManager != nil {
+		authHandler := server.NewAuthHandler(captchaVerifier, tokenManager, log)
+		srv.SetAuthHandler(authHandler)
+	}
+
 	// Create and configure render handler with pool
-	renderHandler := server.NewRenderHandler(pool, httpFetcher, htmlParser, cfg, log)
+	renderHandler := server.NewRenderHandler(pool, httpFetcher, htmlParser, cfg, log, tokenManager)
 	renderHandler.SetSSEManager(srv.SSEManager())
 	srv.SetRenderHandler(renderHandler)
 

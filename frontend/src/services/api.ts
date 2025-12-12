@@ -8,7 +8,7 @@ import { getBaseApiUrl, API_ENDPOINTS } from '../constants/api';
 export function buildRenderRequest(
   url: string,
   config: PanelConfig,
-  captchaToken?: string
+  sessionToken?: string
 ): RenderRequest {
   const blockedTypes: string[] = [];
 
@@ -31,9 +31,9 @@ export function buildRenderRequest(
     blocked_types: blockedTypes,
   };
 
-  // Add captcha token if provided
-  if (captchaToken) {
-    request.captcha_token = captchaToken;
+  // Add session token if provided
+  if (sessionToken) {
+    request.session_token = sessionToken;
   }
 
   return request;
@@ -45,10 +45,10 @@ export function buildRenderRequest(
 export async function renderPage(
   url: string,
   config: PanelConfig,
-  captchaToken?: string
+  sessionToken?: string
 ): Promise<RenderResponse> {
   const apiUrl = getBaseApiUrl() + API_ENDPOINTS.RENDER;
-  const request = buildRenderRequest(url, config, captchaToken);
+  const request = buildRenderRequest(url, config, sessionToken);
 
   try {
     const response = await fetch(apiUrl, {

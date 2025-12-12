@@ -11,11 +11,11 @@ import (
 
 	"go.uber.org/zap"
 
-	"github.com/user/jsbug/internal/captcha"
 	"github.com/user/jsbug/internal/chrome"
 	"github.com/user/jsbug/internal/config"
 	"github.com/user/jsbug/internal/fetcher"
 	"github.com/user/jsbug/internal/parser"
+	"github.com/user/jsbug/internal/session"
 	"github.com/user/jsbug/internal/types"
 )
 
@@ -26,29 +26,29 @@ type Fetcher interface {
 
 // RenderHandler handles render API requests
 type RenderHandler struct {
-	pool            *chrome.ChromePool
-	fetcher         Fetcher
-	parser          *parser.Parser
-	config          *config.Config
-	logger          *zap.Logger
-	sseManager      *SSEManager
-	captchaVerifier *captcha.Verifier
+	pool         *chrome.ChromePool
+	fetcher      Fetcher
+	parser       *parser.Parser
+	config       *config.Config
+	logger       *zap.Logger
+	sseManager   *SSEManager
+	tokenManager *session.TokenManager
 }
 
 // NewRenderHandler creates a new RenderHandler
-func NewRenderHandler(pool *chrome.ChromePool, fetcher Fetcher, parser *parser.Parser, cfg *config.Config, logger *zap.Logger) *RenderHandler {
+// tokenManager is optional - pass nil when captcha/session tokens are disabled
+func NewRenderHandler(pool *chrome.ChromePool, fetcher Fetcher, parser *parser.Parser, cfg *config.Config, logger *zap.Logger, tokenManager *session.TokenManager) *RenderHandler {
 	h := &RenderHandler{
-		pool:    pool,
-		fetcher: fetcher,
-		parser:  parser,
-		config:  cfg,
-		logger:  logger,
+		pool:         pool,
+		fetcher:      fetcher,
+		parser:       parser,
+		config:       cfg,
+		logger:       logger,
+		tokenManager: tokenManager,
 	}
 
-	// Initialize captcha verifier if enabled
-	if cfg.Captcha.Enabled {
-		h.captchaVerifier = captcha.NewVerifier(cfg.Captcha.SecretKey, logger)
-		logger.Info("Captcha verification enabled")
+	if tokenManager != nil {
+		logger.Info("Session token verification enabled")
 	}
 
 	return h
@@ -78,22 +78,29 @@ func (h *RenderHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Apply defaults
 	req.ApplyDefaults()
 
-	// Verify captcha if enabled
-	if h.captchaVerifier != nil {
-		if req.CaptchaToken == "" {
-			h.writeError(w, http.StatusForbidden, types.ErrCaptchaRequired, "Captcha token required")
+	// Validate session token if enabled
+	if h.tokenManager != nil {
+		if req.SessionToken == "" {
+			h.writeError(w, http.StatusForbidden, types.ErrSessionTokenRequired, "Session token required")
 			return
 		}
 
-		clientIP := getClientIP(r)
-		valid, err := h.captchaVerifier.Verify(r.Context(), req.CaptchaToken, clientIP)
-		if err != nil {
-			h.logger.Warn("Captcha verification error", zap.Error(err))
-			h.writeError(w, http.StatusServiceUnavailable, types.ErrCaptchaServiceUnavailable, "Captcha service temporarily unavailable")
-			return
-		}
-		if !valid {
-			h.writeError(w, http.StatusForbidden, types.ErrCaptchaInvalid, "Captcha verification failed")
+		// Compute fingerprint from request headers
+		fingerprint := session.HashFingerprint(
+			r.Header.Get("User-Agent"),
+			r.Header.Get("Accept-Language"),
+			r.Header.Get("Accept-Encoding"),
+		)
+
+		if err := h.tokenManager.ValidateToken(req.SessionToken, fingerprint); err != nil {
+			switch err {
+			case session.ErrTokenExpired:
+				h.writeError(w, http.StatusForbidden, types.ErrSessionTokenExpired, "Session token expired")
+			case session.ErrFingerprintMismatch:
+				h.writeError(w, http.StatusForbidden, types.ErrSessionTokenInvalid, "Session token invalid (fingerprint mismatch)")
+			default:
+				h.writeError(w, http.StatusForbidden, types.ErrSessionTokenInvalid, "Session token invalid")
+			}
 			return
 		}
 	}
@@ -497,10 +504,8 @@ func (h *RenderHandler) writeJSON(w http.ResponseWriter, response *types.RenderR
 				statusCode = http.StatusRequestTimeout
 			case types.ErrChromeUnavailable, types.ErrPoolExhausted, types.ErrPoolShuttingDown:
 				statusCode = http.StatusServiceUnavailable
-			case types.ErrCaptchaRequired, types.ErrCaptchaInvalid:
+			case types.ErrSessionTokenRequired, types.ErrSessionTokenInvalid, types.ErrSessionTokenExpired:
 				statusCode = http.StatusForbidden
-			case types.ErrCaptchaServiceUnavailable:
-				statusCode = http.StatusServiceUnavailable
 			}
 		}
 		w.WriteHeader(statusCode)
