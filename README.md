@@ -1,25 +1,59 @@
-# jsbug
+# JSBug
+ 
+Debug JavaScript rendering issues before they hurt your SEO.
 
-A JavaScript Page Renderer and SEO Content Analyzer that compares how websites render with and without JavaScript enabled.
+JSBug fetches a URL twice: once with JavaScript enabled (rendered) and once without (raw HTML). You see both results side-by-side, making it easy to spot what JavaScript changes.
+You can also compare two rendered versions with different settings: desktop vs mobile user agent, short vs long timeouts, with or without images. This helps you understand how rendering conditions affect your page content.
 
-## Features
+Try it [https://jsbug.org](https://jsbug.org)
 
-- **Side-by-side comparison** - Render the same URL with JS enabled vs disabled
-- **SEO content extraction** - Title, meta tags, headings, structured data, canonical URLs
-- **Network analysis** - Track all HTTP requests with status, size, and timing
-- **Console capture** - JavaScript console logs and errors
-- **Resource blocking** - Filter out analytics, ads, and social scripts
-- **Real-time progress** - SSE streaming for render status updates
+![JSBug screenshot](frontend/public/screenshot.png)
 
-## Tech Stack
+## The problem
 
-| Component | Technology |
-|-----------|------------|
-| Backend | Go 1.24, chromedp, goquery |
-| Frontend | React 19, TypeScript, Vite |
-| Browser | Headless Chrome via DevTools Protocol |
+Modern JavaScript pages are complex and fragile. 
+A rendering issue can affect how Googlebot indexes your content and hurt organic rankings without you knowing.
+AI search makes this worse. ChatGPT, Perplexity, and Claude fetch raw HTML without executing JavaScript. 
+If your important content loads via JS, AI bots won't see it.
 
-## Quick Start
+
+
+### SEO metadata
+- Title and meta description
+- Canonical URL
+- Meta robots and X-Robots-Tag
+- Hreflang tags
+- Indexability status with robots.txt check
+
+### Content
+- H1, H2, H3 headings
+- Body text with word count
+- Text-to-HTML ratio
+- Structured data (JSON-LD)
+
+### Links and images
+- Total count with internal/external breakdown
+- Links and images added or removed by JavaScript
+- Link attributes: nofollow, UGC, sponsored
+- Image alt text coverage
+
+### Technical
+- HTTP status code
+- Page size
+- Load time
+- Redirect chain
+
+### JavaScript debugging (rendered view only)
+- Network requests with status, size, and timing
+- Console logs, warnings, and errors
+- Page lifecycle events (DOMContentLoaded, load, networkIdle)
+- Full rendered HTML
+
+### UI
+- Mobile friendly
+- Dark theme!
+
+## Self-hosted setup
 
 ### Backend
 
@@ -42,24 +76,13 @@ npm run dev
 
 Dev server runs on `http://localhost:5173`
 
-## API
+## Tech stack
 
-**POST /api/render**
-
-```json
-{
-  "url": "https://example.com",
-  "js_enabled": true,
-  "timeout": 10,
-  "wait_event": "networkIdle",
-  "blocking": {
-    "analytics": true,
-    "ads": true
-  }
-}
-```
-
-Returns page content, SEO data, network requests, console logs, and rendered HTML.
+| Component | Technology |
+|-----------|------------|
+| Backend | Go, chromedp, goquery |
+| Frontend | React 19, TypeScript, Vite |
+| Browser | Headless Chrome via DevTools Protocol |
 
 ## License
 
