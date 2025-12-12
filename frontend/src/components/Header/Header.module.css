@@ -222,20 +222,26 @@
 /* Mobile: two-line header layout */
 @media (max-width: 480px) {
   .headerContent {
-    flex-wrap: wrap;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    grid-template-rows: auto auto;
     gap: 12px;
   }
 
+  .headerBrand {
+    grid-column: 1;
+    grid-row: 1;
+  }
+
   .headerUrl {
-    order: 1;
-    flex: 1;
-    min-width: 0;
+    grid-column: 2;
+    grid-row: 1;
   }
 
   .headerActions {
-    order: 2;
-    width: 100%;
-    justify-content: center;
-    gap: 16px;
+    grid-column: 2;
+    grid-row: 2;
+    justify-content: flex-start;
+    gap: 12px;
   }
 }
