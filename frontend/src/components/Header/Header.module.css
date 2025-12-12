@@ -218,3 +218,24 @@
     display: none;
   }
 }
+
+/* Mobile: two-line header layout */
+@media (max-width: 480px) {
+  .headerContent {
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+
+  .headerUrl {
+    order: 1;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .headerActions {
+    order: 2;
+    width: 100%;
+    justify-content: center;
+    gap: 16px;
+  }
+}
