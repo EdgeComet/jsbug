@@ -38,3 +38,25 @@
   word-break: break-word;
 }
 
+/* Virtualized line row */
+.lineRow {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.6;
+  white-space: pre;
+  padding: 0 24px;
+  color: var(--text-body);
+}
+
+/* Browser search hint for large files */
+.browserSearchHint {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  background: var(--surface-secondary);
+  color: var(--text-muted);
+  font-size: 13px;
+  border-bottom: 1px solid var(--border-subtle);
+}
+
