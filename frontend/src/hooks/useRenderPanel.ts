@@ -31,10 +31,11 @@ export interface PanelData {
 export interface UseRenderPanelResult {
   data: PanelData | null;
   error: string | null;
+  errorCode: string | null;
   isLoading: boolean;
   isRetrying: boolean;
   retryCount: number;
-  render: (url: string, config: PanelConfig, sessionToken?: string) => Promise<void>;
+  render: (url: string, config: PanelConfig, sessionToken?: string) => Promise<{ errorCode: string | null }>;
   reset: () => void;
   cancelRetry: () => void;
 }
@@ -140,6 +141,7 @@ function transformResponse(response: RenderData, jsEnabled: boolean): PanelData 
 export function useRenderPanel(): UseRenderPanelResult {
   const [data, setData] = useState<PanelData | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [errorCode, setErrorCode] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [isRetrying, setIsRetrying] = useState(false);
   const [retryCount, setRetryCount] = useState(0);
@@ -173,11 +175,12 @@ export function useRenderPanel(): UseRenderPanelResult {
 
     setIsLoading(true);
     setError(null);
+    setErrorCode(null);
 
     // Internal retry loop for pool exhaustion
     let currentAttempt = 0;
 
-    const attemptRender = async (): Promise<void> => {
+    const attemptRender = async (): Promise<{ errorCode: string | null }> => {
       try {
         const response = await renderPage(url, config, sessionToken);
 
@@ -185,9 +188,11 @@ export function useRenderPanel(): UseRenderPanelResult {
           const transformedData = transformResponse(response.data, config.jsEnabled);
           setData(transformedData);
           setError(null);
+          setErrorCode(null);
           setIsLoading(false);
           setIsRetrying(false);
           setRetryCount(0);
+          return { errorCode: null };
         } else if (response.error) {
           // Check if this is a pool exhaustion error that should trigger retry
           if (isPoolExhaustedError(response.error) && currentAttempt < MAX_POOL_RETRIES) {
@@ -213,9 +218,11 @@ export function useRenderPanel(): UseRenderPanelResult {
             setIsLoading(false);
             setIsRetrying(false);
             setRetryCount(0);
+            return { errorCode: null };
           } else {
             // Not a pool error, or retries exhausted - show error
             setData(null);
+            setErrorCode(response.error.code);
             // Use friendly message for pool exhaustion after retries exhausted
             if (isPoolExhaustedError(response.error)) {
               setError(POOL_EXHAUSTED_MESSAGE);
@@ -225,36 +232,43 @@ export function useRenderPanel(): UseRenderPanelResult {
             setIsLoading(false);
             setIsRetrying(false);
             setRetryCount(0);
+            return { errorCode: response.error.code };
           }
         } else {
           setData(null);
           setError('Unknown error occurred');
+          setErrorCode(null);
           setIsLoading(false);
           setIsRetrying(false);
           setRetryCount(0);
+          return { errorCode: null };
         }
       } catch (_err) {
         setData(null);
         setError('Failed to connect to server');
+        setErrorCode(null);
         setIsLoading(false);
         setIsRetrying(false);
         setRetryCount(0);
+        return { errorCode: null };
       }
     };
 
-    await attemptRender();
+    return await attemptRender();
   }, [cancelRetry]);
 
   const reset = useCallback(() => {
     cancelRetry();
     setData(null);
     setError(null);
+    setErrorCode(null);
     setIsLoading(true);
   }, [cancelRetry]);
 
   return {
     data,
     error,
+    errorCode,
     isLoading,
     isRetrying,
     retryCount,

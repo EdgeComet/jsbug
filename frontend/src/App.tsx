@@ -35,6 +35,12 @@ function AppContent() {
 
   const isAnalyzing = leftPanel.isLoading || rightPanel.isLoading || leftPanel.isRetrying || rightPanel.isRetrying || turnstile.isLoading
 
+  // Check if an error code indicates a session token error
+  const isSessionTokenError = (code: string | null) =>
+    code === 'SESSION_TOKEN_REQUIRED' ||
+    code === 'SESSION_TOKEN_INVALID' ||
+    code === 'SESSION_TOKEN_EXPIRED'
+
   // Keyboard shortcuts
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -117,7 +123,11 @@ function AppContent() {
             const turnstileToken = await turnstile.getToken()
             if (turnstileToken === null) return
             const newToken = await session.createSession(turnstileToken)
-            if (newToken === null) return
+            if (newToken === null) {
+              setHasAnalyzed(false)
+              alert('Failed to create session. Please try again.')
+              return
+            }
             sessionToken = newToken
           }
         }
@@ -175,7 +185,9 @@ function AppContent() {
         }
         const newToken = await session.createSession(turnstileToken)
         if (newToken === null) {
-          return // Session creation failed
+          setHasAnalyzed(false)
+          alert('Failed to create session. Please try again.')
+          return
         }
         sessionToken = newToken
       }
@@ -187,15 +199,10 @@ function AppContent() {
     robots.check(effectiveUrl)
 
     // Wait for both panels to complete
-    await Promise.all([leftPromise, rightPromise])
+    const [leftResult, rightResult] = await Promise.all([leftPromise, rightPromise])
 
     // Check for session token errors and retry silently if needed
-    const isSessionTokenError = (error: string | null) =>
-      error?.includes('SESSION_TOKEN_REQUIRED') ||
-      error?.includes('SESSION_TOKEN_INVALID') ||
-      error?.includes('SESSION_TOKEN_EXPIRED')
-
-    if ((isSessionTokenError(leftPanel.error) || isSessionTokenError(rightPanel.error))
+    if ((isSessionTokenError(leftResult.errorCode) || isSessionTokenError(rightResult.errorCode))
         && retryCount < MAX_SESSION_RETRIES) {
       // Clear invalid session and retry with new one
       session.clearSession()
@@ -218,6 +225,11 @@ function AppContent() {
     const panel = side === 'left' ? leftPanel : rightPanel
     const panelConfig = side === 'left' ? config.left : config.right
 
+    // Clear session if current error is a session token error (e.g., fingerprint mismatch)
+    if (isSessionTokenError(panel.errorCode)) {
+      session.clearSession()
+    }
+
     // Get session token (reuse existing if valid)
     let sessionToken: string | undefined
     if (isCaptchaEnabled()) {
@@ -226,7 +238,10 @@ function AppContent() {
         const turnstileToken = await turnstile.getToken()
         if (turnstileToken === null) return
         const newToken = await session.createSession(turnstileToken)
-        if (newToken === null) return
+        if (newToken === null) {
+          alert('Failed to create session. Please try again.')
+          return
+        }
         sessionToken = newToken
       }
     }
