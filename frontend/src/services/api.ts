@@ -1,6 +1,13 @@
 import type { PanelConfig } from '../types/config';
-import type { RenderRequest, RenderResponse } from '../types/api';
+import type { RenderRequest, RenderResponse, RenderError } from '../types/api';
 import { getBaseApiUrl, API_ENDPOINTS } from '../constants/api';
+
+/**
+ * Check if an error is a pool exhausted error (should trigger retry)
+ */
+export function isPoolExhaustedError(error: RenderError | null): boolean {
+  return error?.code === 'POOL_EXHAUSTED';
+}
 
 /**
  * Build a RenderRequest from the URL and panel configuration

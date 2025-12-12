@@ -33,7 +33,7 @@ function AppContent() {
   const turnstile = useTurnstile()
   const session = useSession()
 
-  const isAnalyzing = leftPanel.isLoading || rightPanel.isLoading || turnstile.isLoading
+  const isAnalyzing = leftPanel.isLoading || rightPanel.isLoading || leftPanel.isRetrying || rightPanel.isRetrying || turnstile.isLoading
 
   // Keyboard shortcuts
   useEffect(() => {
@@ -146,6 +146,10 @@ function AppContent() {
     const effectiveConfig = overrideConfig ?? config
     const effectiveUrl = urlOverride ?? url
 
+    // Cancel any active pool exhaustion retries
+    leftPanel.cancelRetry()
+    rightPanel.cancelRetry()
+
     // Update browser URL (only on first attempt, not retries)
     if (retryCount === 0) {
       const newUrl = serializeToUrl(effectiveUrl, effectiveConfig, defaultConfig)
@@ -207,6 +211,27 @@ function AppContent() {
       [side]: { ...config[side], userAgent: 'chrome-mobile' },
     }
     handleCompare(newConfig)
+  }
+
+  // Retry just one panel (for "Try Again" button after pool exhaustion)
+  const retryPanel = async (side: 'left' | 'right') => {
+    const panel = side === 'left' ? leftPanel : rightPanel
+    const panelConfig = side === 'left' ? config.left : config.right
+
+    // Get session token (reuse existing if valid)
+    let sessionToken: string | undefined
+    if (isCaptchaEnabled()) {
+      sessionToken = session.getValidToken() ?? undefined
+      if (!sessionToken) {
+        const turnstileToken = await turnstile.getToken()
+        if (turnstileToken === null) return
+        const newToken = await session.createSession(turnstileToken)
+        if (newToken === null) return
+        sessionToken = newToken
+      }
+    }
+
+    panel.render(url, panelConfig, sessionToken)
   }
 
   return (
@@ -286,6 +311,9 @@ function AppContent() {
               robotsAllowed={robots.data?.isAllowed}
               robotsLoading={robots.isLoading}
               onRetryWithBrowserUA={() => handleRetryWithBrowserUA('left')}
+              isRetrying={leftPanel.isRetrying}
+              retryCount={leftPanel.retryCount}
+              onRetry={() => retryPanel('left')}
             />
 
             <div className={styles.panelDivider}>
@@ -302,6 +330,9 @@ function AppContent() {
               robotsAllowed={robots.data?.isAllowed}
               robotsLoading={robots.isLoading}
               onRetryWithBrowserUA={() => handleRetryWithBrowserUA('right')}
+              isRetrying={rightPanel.isRetrying}
+              retryCount={rightPanel.retryCount}
+              onRetry={() => retryPanel('right')}
             />
           </div>
         </main>

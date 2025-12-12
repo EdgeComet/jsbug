@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { Icon } from '../common/Icon';
 import { useConfig } from '../../context/ConfigContext';
-import type { PanelData } from '../../hooks/useRenderPanel';
+import { MAX_POOL_RETRIES, type PanelData } from '../../hooks/useRenderPanel';
 import { PanelHeader } from './PanelHeader';
 import { TechnicalCard } from './TechnicalCard';
 import { IndexationCard } from './IndexationCard';
@@ -28,6 +28,10 @@ interface PanelProps {
   robotsAllowed?: boolean;
   robotsLoading?: boolean;
   onRetryWithBrowserUA?: () => void;
+  isRetrying?: boolean;
+  retryCount?: number;
+  maxRetries?: number;
+  onRetry?: () => void;
 }
 
 export function Panel({
@@ -40,6 +44,10 @@ export function Panel({
   robotsAllowed,
   robotsLoading,
   onRetryWithBrowserUA,
+  isRetrying,
+  retryCount,
+  maxRetries = MAX_POOL_RETRIES,
+  onRetry,
 }: PanelProps) {
   const { config } = useConfig();
   const panelConfig = side === 'left' ? config.left : config.right;
@@ -98,6 +106,20 @@ export function Panel({
     );
   }
 
+  // Retry state (pool exhaustion)
+  if (isRetrying) {
+    return (
+      <div className={`${styles.panel} ${side === 'left' ? styles.panelLeft : styles.panelRight}`} data-side={side}>
+        <PanelHeader side={side} />
+        <div className={styles.loadingContainer}>
+          <Icon name="loader" size={24} className={styles.spinner} />
+          <p className={styles.loadingText}>Waiting for available slot...</p>
+          <p className={styles.retryCount}>(attempt {retryCount} of {maxRetries})</p>
+        </div>
+      </div>
+    );
+  }
+
   // Error state
   if (error) {
     return (
@@ -106,6 +128,11 @@ export function Panel({
         <div className={styles.errorContainer}>
           <Icon name="alert-circle" size={24} className={styles.errorIcon} />
           <p className={styles.panelErrorMessage}>{error}</p>
+          {onRetry && (
+            <button onClick={onRetry} className={styles.poolRetryButton}>
+              Try Again
+            </button>
+          )}
         </div>
       </div>
     );

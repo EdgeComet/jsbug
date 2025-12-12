@@ -1,11 +1,15 @@
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, useEffect } from 'react';
 import type { PanelConfig } from '../types/config';
 import type { RenderData } from '../types/api';
 import type { TechnicalData, IndexationData, ContentData, LinksData, ImagesData, TimelineData } from '../types/content';
 import type { NetworkData, ResourceType } from '../types/network';
 import type { ConsoleEntry, ConsoleLevel } from '../types/console';
-import { renderPage } from '../services/api';
+import { renderPage, isPoolExhaustedError } from '../services/api';
 import { checkIndexability } from '../utils/indexationUtils';
+
+// Pool exhaustion retry configuration
+export const MAX_POOL_RETRIES = 5;
+const POOL_RETRY_DELAY_MS = 3000;
 
 /**
  * Combined panel data from API response
@@ -28,9 +32,16 @@ export interface UseRenderPanelResult {
   data: PanelData | null;
   error: string | null;
   isLoading: boolean;
+  isRetrying: boolean;
+  retryCount: number;
   render: (url: string, config: PanelConfig, sessionToken?: string) => Promise<void>;
   reset: () => void;
+  cancelRetry: () => void;
 }
+
+// Message shown when pool exhaustion retries are exhausted
+const POOL_EXHAUSTED_MESSAGE =
+  'All rendering slots are currently in use. Please wait a moment and try again.';
 
 /**
  * Transform API response to frontend types
@@ -130,44 +141,125 @@ export function useRenderPanel(): UseRenderPanelResult {
   const [data, setData] = useState<PanelData | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
+  const [retryCount, setRetryCount] = useState(0);
+  const retryTimeoutRef = useRef<number | null>(null);
+  const cancelledRef = useRef(false);
+
+  // Cancel any active retry timeout
+  const cancelRetry = useCallback(() => {
+    cancelledRef.current = true;
+    if (retryTimeoutRef.current !== null) {
+      clearTimeout(retryTimeoutRef.current);
+      retryTimeoutRef.current = null;
+    }
+    setIsRetrying(false);
+    setRetryCount(0);
+  }, []);
+
+  // Cleanup on unmount to prevent memory leaks and state updates on unmounted component
+  useEffect(() => {
+    return () => {
+      if (retryTimeoutRef.current !== null) {
+        clearTimeout(retryTimeoutRef.current);
+      }
+    };
+  }, []);
 
   const render = useCallback(async (url: string, config: PanelConfig, sessionToken?: string) => {
+    // Cancel any active retry from previous render
+    cancelRetry();
+    cancelledRef.current = false; // Reset after cancel for this new render
+
     setIsLoading(true);
     setError(null);
 
-    try {
-      const response = await renderPage(url, config, sessionToken);
+    // Internal retry loop for pool exhaustion
+    let currentAttempt = 0;
 
-      if (response.success && response.data) {
-        const transformedData = transformResponse(response.data, config.jsEnabled);
-        setData(transformedData);
-        setError(null);
-      } else if (response.error) {
+    const attemptRender = async (): Promise<void> => {
+      try {
+        const response = await renderPage(url, config, sessionToken);
+
+        if (response.success && response.data) {
+          const transformedData = transformResponse(response.data, config.jsEnabled);
+          setData(transformedData);
+          setError(null);
+          setIsLoading(false);
+          setIsRetrying(false);
+          setRetryCount(0);
+        } else if (response.error) {
+          // Check if this is a pool exhaustion error that should trigger retry
+          if (isPoolExhaustedError(response.error) && currentAttempt < MAX_POOL_RETRIES) {
+            currentAttempt++;
+            setRetryCount(currentAttempt);
+            setIsRetrying(true);
+            setIsLoading(false);
+
+            // Wait and retry
+            await new Promise<void>((resolve) => {
+              retryTimeoutRef.current = window.setTimeout(() => {
+                retryTimeoutRef.current = null;
+                resolve();
+              }, POOL_RETRY_DELAY_MS);
+            });
+
+            // Check if we were cancelled during the wait
+            if (!cancelledRef.current) {
+              // Continue with retry
+              return attemptRender();
+            }
+            // Cancelled - explicitly ensure panel is in valid idle state
+            setIsLoading(false);
+            setIsRetrying(false);
+            setRetryCount(0);
+          } else {
+            // Not a pool error, or retries exhausted - show error
+            setData(null);
+            // Use friendly message for pool exhaustion after retries exhausted
+            if (isPoolExhaustedError(response.error)) {
+              setError(POOL_EXHAUSTED_MESSAGE);
+            } else {
+              setError(response.error.message);
+            }
+            setIsLoading(false);
+            setIsRetrying(false);
+            setRetryCount(0);
+          }
+        } else {
+          setData(null);
+          setError('Unknown error occurred');
+          setIsLoading(false);
+          setIsRetrying(false);
+          setRetryCount(0);
+        }
+      } catch (_err) {
         setData(null);
-        setError(response.error.message);
-      } else {
-        setData(null);
-        setError('Unknown error occurred');
+        setError('Failed to connect to server');
+        setIsLoading(false);
+        setIsRetrying(false);
+        setRetryCount(0);
       }
-    } catch (_err) {
-      setData(null);
-      setError('Failed to connect to server');
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+    };
+
+    await attemptRender();
+  }, [cancelRetry]);
 
   const reset = useCallback(() => {
+    cancelRetry();
     setData(null);
     setError(null);
     setIsLoading(true);
-  }, []);
+  }, [cancelRetry]);
 
   return {
     data,
     error,
     isLoading,
+    isRetrying,
+    retryCount,
     render,
     reset,
+    cancelRetry,
   };
 }

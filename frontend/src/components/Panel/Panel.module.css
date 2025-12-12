@@ -477,6 +477,12 @@
   color: var(--text-muted);
 }
 
+.retryCount {
+  margin-top: 8px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
 /* Error state */
 .errorContainer {
   display: flex;
@@ -501,6 +507,24 @@
   font-size: 14px;
   color: #dc2626;
   text-align: center;
+  max-width: 280px;
+}
+
+.poolRetryButton {
+  margin-top: 20px;
+  padding: 10px 24px;
+  font-size: 14px;
+  font-weight: 600;
+  color: white;
+  background: var(--electric-blue);
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background var(--transition-fast);
+}
+
+.poolRetryButton:hover {
+  background: var(--electric-blue-dark);
 }
 
 /* Empty state */
