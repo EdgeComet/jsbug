@@ -269,7 +269,7 @@ function AppContent() {
               <EscapingBug />
             </div>
             <h1 className={styles.welcomeName}>JSBug</h1>
-            <p className={styles.welcomeHeadline}>See What Search Engines &amp; AI Bots See</p>
+            <h2 className={styles.welcomeHeadline}>See What Search Engines &amp; AI Bots See</h2>
             <p className={styles.welcomeSubheadline}>
               Debug JavaScript rendering issues before they hurt your SEO
             </p>
