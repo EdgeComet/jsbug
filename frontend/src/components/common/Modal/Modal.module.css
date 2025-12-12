@@ -141,4 +141,9 @@
   .modalBody {
     overflow-y: auto;
   }
+
+  .modalClose {
+    width: 44px;
+    height: 44px;
+  }
 }

@@ -202,6 +202,7 @@
 @media (max-width: 992px) {
   .appHeader {
     padding: 12px 20px;
+    position: static;
   }
 
   .headerUrl {
