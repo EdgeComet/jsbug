@@ -307,7 +307,7 @@ function AppContent() {
             </div>
 
             <p className={styles.openSourceTagline}>
-              Free & open source. Built by the community.
+              Free & <a href="https://github.com/EdgeComet/jsbug" target="_blank" rel="noopener noreferrer" className={styles.githubLink}>open source <Icon name="github" size={14} /></a>. Built for the community.
             </p>
           </div>
         </div>

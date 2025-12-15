@@ -1,11 +1,16 @@
 # JSBug
- 
-Debug JavaScript rendering issues before they hurt your SEO.
 
-JSBug fetches a URL twice: once with JavaScript enabled (rendered) and once without (raw HTML). You see both results side-by-side, making it easy to spot what JavaScript changes.
-You can also compare two rendered versions with different settings: desktop vs mobile user agent, short vs long timeouts, with or without images. This helps you understand how rendering conditions affect your page content.
+JSBug is a diagnostic tool for analyzing JavaScript rendering behavior and its impact on SEO and content delivery.
+
+It fetches a URL twice: once with JavaScript enabled (rendered) and once without (raw HTML). 
+You see both results side-by-side, making it easy to spot what JavaScript changes.
+You can also compare two rendered versions with different settings: desktop vs mobile user agent, short vs long timeouts, 
+with or without images. This helps you understand how rendering conditions affect your page content.
 
 Try it [https://jsbug.org](https://jsbug.org)
+
+JSBug is intended for technical SEOs, frontend engineers, and platform teams who need deterministic, 
+inspectable insights into how pages actually render under real-world bot and browser conditions.
 
 ![JSBug screenshot](frontend/public/screenshot.png)
 
