@@ -1,0 +1,1 @@
+export { ScreenshotCard } from './ScreenshotCard';

@@ -51,6 +51,7 @@ type RenderResult struct {
 	Console       []types.ConsoleMessage
 	JSErrors      []types.JSError
 	Lifecycle     []types.LifecycleEvent
+	Screenshot    []byte `json:"-"` // PNG screenshot data, excluded from JSON serialization
 }
 
 // RendererV2 handles page rendering using Chrome with improved task-based architecture
@@ -78,6 +79,7 @@ type renderState struct {
 	errorMessages []string
 	lifecycle     []types.LifecycleEvent
 	timedOut      bool
+	screenshot    []byte
 	mu            sync.Mutex
 }
 
@@ -172,6 +174,7 @@ func (r *RendererV2) buildResult(state *renderState, collector *EventCollector, 
 		Console:       collector.GetConsoleResults(),
 		JSErrors:      collector.GetJSErrors(),
 		Lifecycle:     state.lifecycle,
+		Screenshot:    state.screenshot,
 	}
 
 	// Get redirect info if a redirect was detected
@@ -454,6 +457,25 @@ func (r *RendererV2) buildTasks(opts RenderOptions, state *renderState, collecto
 						zap.Int("status_code", int(statusCodeResult)))
 				}
 			}
+			return nil
+		}),
+
+		// Capture screenshot (viewport only, PNG format)
+		chromedp.ActionFunc(func(ctx context.Context) error {
+			var screenshotBuf []byte
+			err := chromedp.CaptureScreenshot(&screenshotBuf).Do(ctx)
+			if err != nil {
+				r.logger.Warn("Failed to capture screenshot",
+					zap.String("url", opts.URL),
+					zap.Error(err))
+				// Don't fail the render if screenshot fails
+				return nil
+			}
+
+			state.mu.Lock()
+			state.screenshot = screenshotBuf
+			state.mu.Unlock()
+
 			return nil
 		}),
 

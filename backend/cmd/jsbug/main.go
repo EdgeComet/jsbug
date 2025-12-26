@@ -19,6 +19,7 @@ import (
 	"github.com/user/jsbug/internal/logger"
 	"github.com/user/jsbug/internal/parser"
 	"github.com/user/jsbug/internal/robots"
+	"github.com/user/jsbug/internal/screenshot"
 	"github.com/user/jsbug/internal/server"
 	"github.com/user/jsbug/internal/session"
 )
@@ -84,6 +85,16 @@ func main() {
 		log.Info("Captcha/session token verification enabled")
 	}
 
+	// Create screenshot store with 5-minute TTL
+	screenshotStore := screenshot.NewStore(5 * time.Minute)
+
+	// Create a context for background cleanup that will be cancelled on shutdown
+	cleanupCtx, cleanupCancel := context.WithCancel(context.Background())
+	defer cleanupCancel()
+
+	// Start screenshot cleanup goroutine (runs every minute)
+	screenshotStore.StartCleanup(cleanupCtx, 1*time.Minute)
+
 	// Create server (SSE manager is created internally)
 	srv := server.New(cfg, log)
 
@@ -93,10 +104,14 @@ func main() {
 		srv.SetAuthHandler(authHandler)
 	}
 
-	// Create and configure render handler with pool
-	renderHandler := server.NewRenderHandler(pool, httpFetcher, htmlParser, cfg, log, tokenManager)
+	// Create and configure render handler with pool and screenshot store
+	renderHandler := server.NewRenderHandler(pool, httpFetcher, htmlParser, cfg, log, tokenManager, screenshotStore)
 	renderHandler.SetSSEManager(srv.SSEManager())
 	srv.SetRenderHandler(renderHandler)
+
+	// Create and configure screenshot handler
+	screenshotHandler := server.NewScreenshotHandler(screenshotStore)
+	srv.SetScreenshotHandler(screenshotHandler)
 
 	// Create and configure robots handler
 	robotsChecker := robots.NewChecker(log)

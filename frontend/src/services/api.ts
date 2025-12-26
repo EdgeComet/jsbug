@@ -3,6 +3,13 @@ import type { RenderRequest, RenderResponse, RenderError } from '../types/api';
 import { getBaseApiUrl, API_ENDPOINTS } from '../constants/api';
 
 /**
+ * Get the full URL for a screenshot by ID
+ */
+export function getScreenshotUrl(id: string): string {
+  return `${getBaseApiUrl()}/screenshot/${id}`;
+}
+
+/**
  * Check if an error is a pool exhausted error (should trigger retry)
  */
 export function isPoolExhaustedError(error: RenderError | null): boolean {

@@ -58,7 +58,7 @@ func NewTestServer(t *testing.T) *TestServer {
 	}
 
 	srv := server.New(cfg, logger)
-	renderHandler := server.NewRenderHandler(renderer, httpFetcher, htmlParser, cfg, logger)
+	renderHandler := server.NewRenderHandler(renderer, httpFetcher, htmlParser, cfg, logger, nil, nil)
 	renderHandler.SetSSEManager(srv.SSEManager())
 	srv.SetRenderHandler(renderHandler)
 
@@ -89,7 +89,7 @@ func TestIntegration_NonJSFetch_ReturnsRawHTML(t *testing.T) {
 		Chrome: config.ChromeConfig{},
 	}
 
-	renderHandler := server.NewRenderHandler(nil, httpFetcher, htmlParser, cfg, logger)
+	renderHandler := server.NewRenderHandler(nil, httpFetcher, htmlParser, cfg, logger, nil, nil)
 
 	// Create request
 	req := &types.RenderRequest{

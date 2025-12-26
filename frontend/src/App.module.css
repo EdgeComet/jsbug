@@ -116,7 +116,7 @@
 }
 
 .panelDivider {
-  grid-row: span 6;
+  grid-row: span 7;
   width: 2px;
   background: linear-gradient(180deg, var(--border-light) 0%, var(--border-medium) 50%, var(--border-light) 100%);
   position: relative;

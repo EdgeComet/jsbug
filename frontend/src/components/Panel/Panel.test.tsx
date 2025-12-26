@@ -19,6 +19,7 @@ const leftPanelData: PanelData = {
   network: mockLeftPanel.network,
   timeline: mockLeftPanel.timeline,
   console: mockLeftPanel.console,
+  screenshotId: null,
 };
 
 const rightPanelData: PanelData = {
@@ -30,6 +31,7 @@ const rightPanelData: PanelData = {
   network: null,
   timeline: null,
   console: null,
+  screenshotId: null,
 };
 
 describe('Panel', () => {

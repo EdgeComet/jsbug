@@ -45,6 +45,7 @@ export interface RenderData {
   canonical_url?: string | null;
   page_size_bytes: number;
   render_time: number;
+  screenshot_id?: string | null;
   meta_robots?: string | null;
   x_robots_tag?: string | null;
   meta_indexable: boolean;

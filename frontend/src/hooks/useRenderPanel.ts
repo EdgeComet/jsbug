@@ -23,6 +23,7 @@ export interface PanelData {
   network: NetworkData | null;
   timeline: TimelineData | null;
   console: ConsoleEntry[] | null;
+  screenshotId: string | null;
 }
 
 /**
@@ -132,6 +133,7 @@ function transformResponse(response: RenderData, jsEnabled: boolean): PanelData 
       message: msg.message,
       time: msg.time,
     })) : null,
+    screenshotId: jsEnabled ? (response.screenshot_id ?? null) : null,
   };
 }
 

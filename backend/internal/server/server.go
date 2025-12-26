@@ -79,6 +79,12 @@ func (s *Server) SetAuthHandler(handler *AuthHandler) {
 	s.mux.Handle("/api/auth/captcha", handler)
 }
 
+// SetScreenshotHandler sets the screenshot handler for serving screenshots
+func (s *Server) SetScreenshotHandler(handler *ScreenshotHandler) {
+	// Use a prefix pattern to match /api/screenshot/{id}
+	s.mux.HandleFunc("/api/screenshot/", handler.HandleGet)
+}
+
 // SSEManager returns the server's SSE manager
 func (s *Server) SSEManager() *SSEManager {
 	return s.sseManager

@@ -9,6 +9,7 @@ import { LinksCard } from './LinksCard';
 import { ImagesCard } from './ImagesCard';
 import { ContentCard } from './ContentCard';
 import { NoJSInfo } from './NoJSInfo';
+import { ScreenshotCard } from '../ScreenshotCard';
 import { ResultTabs } from '../ResultTabs/ResultTabs';
 import { LinksModal, type LinkFilterType } from '../LinksModal/LinksModal';
 import { ImagesModal, type ImageFilterType } from '../ImagesModal/ImagesModal';
@@ -150,8 +151,18 @@ export function Panel({
     );
   }
 
-  const { technical, indexation, links, images, content, network, timeline, console: consoleData } = data;
+  const { technical, indexation, links, images, content, network, timeline, console: consoleData, screenshotId } = data;
   const isSuccess = technical.statusCode === 200;
+
+  // Extract domain from final URL for screenshot filename
+  const domain = (() => {
+    try {
+      if (!technical.finalUrl) return undefined;
+      return new URL(technical.finalUrl).hostname;
+    } catch {
+      return undefined;
+    }
+  })();
 
   return (
     <div className={`${styles.panel} ${side === 'left' ? styles.panelLeft : styles.panelRight}`} data-side={side}>
@@ -181,6 +192,10 @@ export function Panel({
         ) : (
           <NoJSInfo />
         ))}
+
+        {screenshotId && jsEnabled && (
+          <ScreenshotCard screenshotId={screenshotId} />
+        )}
       </div>
 
       <LinksModal

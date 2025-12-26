@@ -69,6 +69,7 @@ type RenderData struct {
 	CanonicalURL  string  `json:"canonical_url,omitempty"`
 	PageSizeBytes int     `json:"page_size_bytes"`
 	RenderTime    float64 `json:"render_time"`
+	ScreenshotID  string  `json:"screenshot_id,omitempty"`
 	MetaRobots    string  `json:"meta_robots,omitempty"`
 	XRobotsTag    string  `json:"x_robots_tag,omitempty"`
 

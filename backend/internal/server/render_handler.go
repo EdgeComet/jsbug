@@ -15,6 +15,7 @@ import (
 	"github.com/user/jsbug/internal/config"
 	"github.com/user/jsbug/internal/fetcher"
 	"github.com/user/jsbug/internal/parser"
+	"github.com/user/jsbug/internal/screenshot"
 	"github.com/user/jsbug/internal/session"
 	"github.com/user/jsbug/internal/types"
 )
@@ -26,25 +27,28 @@ type Fetcher interface {
 
 // RenderHandler handles render API requests
 type RenderHandler struct {
-	pool         *chrome.ChromePool
-	fetcher      Fetcher
-	parser       *parser.Parser
-	config       *config.Config
-	logger       *zap.Logger
-	sseManager   *SSEManager
-	tokenManager *session.TokenManager
+	pool            *chrome.ChromePool
+	fetcher         Fetcher
+	parser          *parser.Parser
+	config          *config.Config
+	logger          *zap.Logger
+	sseManager      *SSEManager
+	tokenManager    *session.TokenManager
+	screenshotStore *screenshot.ScreenshotStore
 }
 
 // NewRenderHandler creates a new RenderHandler
 // tokenManager is optional - pass nil when captcha/session tokens are disabled
-func NewRenderHandler(pool *chrome.ChromePool, fetcher Fetcher, parser *parser.Parser, cfg *config.Config, logger *zap.Logger, tokenManager *session.TokenManager) *RenderHandler {
+// screenshotStore is optional - pass nil to disable screenshot storage
+func NewRenderHandler(pool *chrome.ChromePool, fetcher Fetcher, parser *parser.Parser, cfg *config.Config, logger *zap.Logger, tokenManager *session.TokenManager, screenshotStore *screenshot.ScreenshotStore) *RenderHandler {
 	h := &RenderHandler{
-		pool:         pool,
-		fetcher:      fetcher,
-		parser:       parser,
-		config:       cfg,
-		logger:       logger,
-		tokenManager: tokenManager,
+		pool:            pool,
+		fetcher:         fetcher,
+		parser:          parser,
+		config:          cfg,
+		logger:          logger,
+		tokenManager:    tokenManager,
+		screenshotStore: screenshotStore,
 	}
 
 	if tokenManager != nil {
@@ -341,6 +345,11 @@ func (h *RenderHandler) buildJSResponse(result *chrome.RenderResult, parseResult
 		Console:       result.Console,
 		JSErrors:      result.JSErrors,
 		Lifecycle:     result.Lifecycle,
+	}
+
+	// Store screenshot and set ID if available
+	if h.screenshotStore != nil && len(result.Screenshot) > 0 {
+		data.ScreenshotID = h.screenshotStore.Store(result.Screenshot)
 	}
 
 	// Add parsed content
