@@ -1,0 +1,73 @@
+/* MarkdownContent Component Styles */
+
+.markdownContent {
+  font-size: 14px;
+  line-height: 1.7;
+  color: var(--text-body);
+  overflow-x: hidden;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.markdownContent h1 {
+  font-size: 1.5em;
+  font-weight: 600;
+  margin: 1em 0 0.5em;
+  color: var(--text-dark);
+}
+
+.markdownContent h2 {
+  font-size: 1.3em;
+  font-weight: 600;
+  margin: 1em 0 0.5em;
+  color: var(--text-dark);
+}
+
+.markdownContent h3 {
+  font-size: 1.15em;
+  font-weight: 600;
+  margin: 1em 0 0.5em;
+  color: var(--text-dark);
+}
+
+.markdownContent h4,
+.markdownContent h5,
+.markdownContent h6 {
+  font-size: 1em;
+  font-weight: 600;
+  margin: 1em 0 0.5em;
+  color: var(--text-dark);
+}
+
+.markdownContent p {
+  margin: 0.75em 0;
+}
+
+.markdownContent ul,
+.markdownContent ol {
+  margin: 0.5em 0;
+  padding-left: 1.5em;
+}
+
+.markdownContent li {
+  margin: 0.25em 0;
+}
+
+.markdownContent blockquote {
+  border-left: 3px solid var(--border-light);
+  padding-left: 1em;
+  margin: 0.75em 0;
+  color: var(--text-muted);
+}
+
+.link {
+  color: var(--electric-blue);
+  text-decoration: none;
+  cursor: default;
+}
+
+.sectionDivider {
+  border: none;
+  border-top: 1px solid var(--border-light);
+  margin: 1.5em 0 0.5em;
+}

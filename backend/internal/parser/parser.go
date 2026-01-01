@@ -26,6 +26,7 @@ type ParseResult struct {
 	StructuredData  []json.RawMessage
 	// New fields for extended extraction
 	BodyText      string
+	BodyMarkdown  string
 	TextHtmlRatio float64
 	HrefLangs     []types.HrefLang
 	Links         []types.Link
@@ -201,8 +202,9 @@ func (p *Parser) ParseWithOptions(htmlContent string, opts ParseOptions) (*Parse
 	// Extract robots directives (MetaIndexable, MetaFollow)
 	result.MetaIndexable, result.MetaFollow = GetRobotsFromMeta(googlebotContent, result.MetaRobots, opts.XRobotsTag)
 
-	// Extract body text and calculate ratio
+	// Extract body text, markdown, and calculate ratio
 	result.BodyText = ExtractBodyText(doc)
+	result.BodyMarkdown = ExtractBodyMarkdown(doc)
 	result.TextHtmlRatio = CalculateTextHtmlRatio(result.BodyText, htmlContent)
 
 	// Extract hreflang tags

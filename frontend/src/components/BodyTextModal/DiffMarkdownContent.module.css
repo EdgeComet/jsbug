@@ -1,0 +1,39 @@
+.diffContent {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.block {
+  padding: 8px;
+  border-radius: 4px;
+  overflow-x: hidden;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.unchanged {
+  background: transparent;
+}
+
+.added {
+  background: rgba(34, 197, 94, 0.15);
+  border-left: 3px solid #22c55e;
+}
+
+.removed {
+  background: rgba(239, 68, 68, 0.15);
+  border-left: 3px solid #ef4444;
+}
+
+.modified {
+  background: rgba(234, 179, 8, 0.15);
+  border-left: 3px solid #eab308;
+}
+
+.placeholder {
+  background: var(--bg-secondary);
+  min-height: 40px;
+  border-radius: 4px;
+  opacity: 0.5;
+}

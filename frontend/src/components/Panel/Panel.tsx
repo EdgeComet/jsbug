@@ -210,7 +210,10 @@ export function Panel({
         isOpen={bodyTextModalOpen}
         onClose={() => setBodyTextModalOpen(false)}
         bodyText={content.bodyText}
+        bodyMarkdown={content.bodyMarkdown}
         wordCount={content.bodyWords}
+        compareBodyText={jsEnabled ? compareData?.content?.bodyText : undefined}
+        compareBodyMarkdown={jsEnabled ? compareData?.content?.bodyMarkdown : undefined}
       />
 
       <WordDiffModal

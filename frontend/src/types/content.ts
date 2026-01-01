@@ -59,6 +59,7 @@ export interface ContentData {
   bodyWords: number;
   textHtmlRatio: number;
   bodyText: string;
+  bodyMarkdown: string;
   openGraph?: Record<string, string>;
   structuredData?: unknown[];
   html?: string;

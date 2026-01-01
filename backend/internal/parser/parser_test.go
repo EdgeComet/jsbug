@@ -1,6 +1,7 @@
 package parser
 
 import (
+	"strings"
 	"testing"
 )
 
@@ -517,5 +518,227 @@ func TestParser_Parse_CompleteExample(t *testing.T) {
 	}
 	if result.WordCount < 10 {
 		t.Errorf("WordCount = %d, expected >= 10", result.WordCount)
+	}
+}
+
+func TestParseWithOptions_BodyMarkdown(t *testing.T) {
+	html := `<!DOCTYPE html>
+<html>
+<head><title>Test</title></head>
+<body>
+    <h1>Welcome</h1>
+    <p>This is a <strong>test</strong> page.</p>
+    <nav>Home | About</nav>
+</body>
+</html>`
+
+	parser := NewParser()
+	result, err := parser.ParseWithOptions(html, ParseOptions{
+		PageURL: "https://example.com",
+	})
+	if err != nil {
+		t.Fatalf("ParseWithOptions() error = %v", err)
+	}
+
+	// Verify body_markdown contains expected structure
+	if !strings.Contains(result.BodyMarkdown, "# Welcome") {
+		t.Error("BodyMarkdown should contain h1 as markdown heading")
+	}
+	if !strings.Contains(result.BodyMarkdown, "**test**") {
+		t.Error("BodyMarkdown should contain bold formatting")
+	}
+	if !strings.Contains(result.BodyMarkdown, "[NAV]") {
+		t.Error("BodyMarkdown should contain semantic section label")
+	}
+}
+
+func TestFullMarkdownExtraction(t *testing.T) {
+	html := `<!DOCTYPE html>
+<html>
+<body>
+    <header>
+        <nav aria-label="Main">
+            <a href="https://example.com">Home</a>
+        </nav>
+    </header>
+    <main>
+        <article>
+            <h1>Welcome</h1>
+            <p>This is <strong>important</strong> content.</p>
+            <ul>
+                <li>First item</li>
+                <li>Second item</li>
+            </ul>
+            <table>
+                <tr><td>A</td><td>B</td></tr>
+            </table>
+        </article>
+    </main>
+    <footer>Copyright 2024</footer>
+</body>
+</html>`
+
+	parser := NewParser()
+	result, err := parser.ParseWithOptions(html, ParseOptions{
+		PageURL: "https://example.com",
+	})
+	if err != nil {
+		t.Fatalf("ParseWithOptions() error = %v", err)
+	}
+
+	// Verify structure - per spec, only innermost semantic labels appear
+	// header contains nav, so only [NAV] appears (not [HEADER])
+	// main contains article, so only [ARTICLE] appears (not [MAIN CONTENT])
+	expected := []string{
+		"[NAV: Main]",
+		"Home", // Link text inside nav section (rendered as plain text)
+		"[ARTICLE]",
+		"# Welcome",
+		"**important**",
+		"- First item",
+		"- Second item",
+		"- A | B",
+		"[FOOTER]",
+		"Copyright 2024",
+	}
+
+	for _, exp := range expected {
+		if !strings.Contains(result.BodyMarkdown, exp) {
+			t.Errorf("BodyMarkdown missing expected content: %s\nGot:\n%s", exp, result.BodyMarkdown)
+		}
+	}
+
+	// Verify outer semantic labels do NOT appear (innermost only)
+	shouldNotContain := []string{"[HEADER]", "[MAIN CONTENT]"}
+	for _, s := range shouldNotContain {
+		if strings.Contains(result.BodyMarkdown, s) {
+			t.Errorf("BodyMarkdown should NOT contain outer semantic %s (innermost only)\nGot:\n%s", s, result.BodyMarkdown)
+		}
+	}
+}
+
+func TestMarkdownExtractionWithComparison(t *testing.T) {
+	// Simulate JS-rendered page with additional dynamic content
+	jsRenderedHTML := `<!DOCTYPE html>
+<html>
+<body>
+    <main>
+        <h1>Product Page</h1>
+        <p>Base content visible to all.</p>
+        <div class="js-loaded">
+            <h2>Reviews</h2>
+            <p>Customer reviews loaded by JavaScript.</p>
+            <ul>
+                <li>Great product! - User1</li>
+                <li>Highly recommended - User2</li>
+            </ul>
+        </div>
+    </main>
+</body>
+</html>`
+
+	// Simulate non-JS page without dynamic content
+	nonJSHTML := `<!DOCTYPE html>
+<html>
+<body>
+    <main>
+        <h1>Product Page</h1>
+        <p>Base content visible to all.</p>
+    </main>
+</body>
+</html>`
+
+	parser := NewParser()
+
+	jsResult, err := parser.ParseWithOptions(jsRenderedHTML, ParseOptions{
+		PageURL: "https://example.com/product",
+	})
+	if err != nil {
+		t.Fatalf("ParseWithOptions() error for JS HTML = %v", err)
+	}
+
+	nonJSResult, err := parser.ParseWithOptions(nonJSHTML, ParseOptions{
+		PageURL: "https://example.com/product",
+	})
+	if err != nil {
+		t.Fatalf("ParseWithOptions() error for non-JS HTML = %v", err)
+	}
+
+	// Both should have the base content
+	baseContent := []string{
+		"[MAIN CONTENT]",
+		"# Product Page",
+		"Base content visible to all",
+	}
+
+	for _, exp := range baseContent {
+		if !strings.Contains(jsResult.BodyMarkdown, exp) {
+			t.Errorf("JS BodyMarkdown missing base content: %s", exp)
+		}
+		if !strings.Contains(nonJSResult.BodyMarkdown, exp) {
+			t.Errorf("Non-JS BodyMarkdown missing base content: %s", exp)
+		}
+	}
+
+	// Only JS version should have the dynamic content
+	jsOnlyContent := []string{
+		"## Reviews",
+		"Customer reviews loaded by JavaScript",
+		"- Great product! - User1",
+		"- Highly recommended - User2",
+	}
+
+	for _, exp := range jsOnlyContent {
+		if !strings.Contains(jsResult.BodyMarkdown, exp) {
+			t.Errorf("JS BodyMarkdown missing dynamic content: %s", exp)
+		}
+		if strings.Contains(nonJSResult.BodyMarkdown, exp) {
+			t.Errorf("Non-JS BodyMarkdown should NOT contain dynamic content: %s", exp)
+		}
+	}
+
+	// JS version should have more content
+	if len(jsResult.BodyMarkdown) <= len(nonJSResult.BodyMarkdown) {
+		t.Errorf("JS BodyMarkdown should be longer than non-JS BodyMarkdown. JS: %d, Non-JS: %d",
+			len(jsResult.BodyMarkdown), len(nonJSResult.BodyMarkdown))
+	}
+}
+
+func TestMarkdownBlockquoteAndDefinitionList(t *testing.T) {
+	html := `<!DOCTYPE html>
+<html>
+<body>
+    <blockquote>This is a famous quote that should be formatted properly.</blockquote>
+    <dl>
+        <dt>HTML</dt>
+        <dd>HyperText Markup Language</dd>
+        <dt>CSS</dt>
+        <dd>Cascading Style Sheets</dd>
+    </dl>
+</body>
+</html>`
+
+	parser := NewParser()
+	result, err := parser.ParseWithOptions(html, ParseOptions{
+		PageURL: "https://example.com",
+	})
+	if err != nil {
+		t.Fatalf("ParseWithOptions() error = %v", err)
+	}
+
+	// Check blockquote formatting
+	if !strings.Contains(result.BodyMarkdown, "> This is a famous quote") {
+		t.Error("BodyMarkdown should contain blockquote with > prefix")
+	}
+
+	// Check definition list formatting
+	if !strings.Contains(result.BodyMarkdown, "**HTML**") {
+		t.Error("BodyMarkdown should contain bold term for definition list")
+	}
+	if !strings.Contains(result.BodyMarkdown, "HyperText Markup Language") {
+		t.Error("BodyMarkdown should contain definition")
+	}
+	if !strings.Contains(result.BodyMarkdown, "**CSS**") {
+		t.Error("BodyMarkdown should contain bold CSS term")
 	}
 }

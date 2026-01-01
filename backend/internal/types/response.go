@@ -22,6 +22,9 @@ const (
 // MaxBodyTextBytes is the maximum size for extracted body text (3MB)
 const MaxBodyTextBytes = 3 * 1024 * 1024
 
+// MaxBodyMarkdownBytes is the maximum size for extracted body markdown (3MB)
+const MaxBodyMarkdownBytes = 3 * 1024 * 1024
+
 // HrefLang represents an hreflang alternate link
 type HrefLang struct {
 	Lang   string `json:"lang"`
@@ -89,6 +92,7 @@ type RenderData struct {
 
 	// Body text and ratio
 	BodyText      string  `json:"body_text,omitempty"`
+	BodyMarkdown  string  `json:"body_markdown,omitempty"`
 	TextHtmlRatio float64 `json:"text_html_ratio"`
 
 	// HrefLang alternates

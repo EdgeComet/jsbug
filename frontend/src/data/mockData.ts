@@ -137,6 +137,38 @@ Key Features:
 - Custom user agent selection
 - Configurable wait conditions
 - Request blocking options`,
+    bodyMarkdown: `# JavaScript Rendering Comparison Tool
+
+Compare how your pages render with JavaScript enabled versus disabled. JSBug provides a side-by-side view to help you identify content differences, performance impacts, and potential issues.
+
+## Side-by-Side Comparison
+
+View your page rendered in two panels simultaneously. The left panel shows the fully rendered JavaScript version while the right panel displays the static HTML. Spot missing content, broken layouts, and accessibility concerns at a glance.
+
+## Network Analysis
+
+Track every network request made during page rendering. See which scripts, stylesheets, and API calls are loaded. Identify blocked resources, failed requests, and opportunities to optimize your page load performance.
+
+## Console Debugging
+
+Capture all console output including logs, warnings, and errors. Debug JavaScript issues by comparing what happens when scripts execute versus when they're blocked. Find runtime errors before your users do.
+
+## Performance Timeline
+
+Monitor key performance metrics like First Paint, DOM Content Loaded, and Time to Interactive. Understand how JavaScript affects your page load times and core web vitals.
+
+## Start Comparing Today
+
+Enter any URL and instantly see the rendering differences. Perfect for debugging client-side rendering issues, validating server-side rendering implementations, and ensuring your content is accessible to all users and search engines.
+
+### Key Features:
+- Real-time rendering comparison
+- Network request monitoring
+- Console log capture
+- Performance metrics tracking
+- Custom user agent selection
+- Configurable wait conditions
+- Request blocking options`,
   } as ContentData,
 
   network: {
@@ -279,6 +311,21 @@ Network Analysis
 Track every network request made during page rendering.
 
 Console Debugging
+Capture all console output including logs, warnings, and errors.`,
+    bodyMarkdown: `# JavaScript Rendering Comparison Tool
+
+Compare how your pages render with JavaScript enabled versus disabled.
+
+## Side-by-Side Comparison
+
+View your page rendered in two panels simultaneously.
+
+## Network Analysis
+
+Track every network request made during page rendering.
+
+## Console Debugging
+
 Capture all console output including logs, warnings, and errors.`,
   } as ContentData,
 };
