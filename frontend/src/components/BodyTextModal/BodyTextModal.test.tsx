@@ -19,7 +19,7 @@ describe('BodyTextModal', () => {
   const defaultProps = {
     isOpen: true,
     onClose: vi.fn(),
-    bodyText: 'Plain text content',
+    bodyMarkdown: 'Plain text content',
     wordCount: 3,
   };
 
@@ -34,23 +34,12 @@ describe('BodyTextModal', () => {
     expect(screen.queryByText(/Body Text/)).not.toBeInTheDocument();
   });
 
-  it('renders plain text when markdown is empty', () => {
+  it('renders markdown content', () => {
     render(
       <BodyTextModal
         {...defaultProps}
-        bodyText="Plain text content"
-        bodyMarkdown=""
-      />
-    );
-    expect(screen.getByText('Plain text content')).toBeInTheDocument();
-  });
-
-  it('renders markdown content when bodyMarkdown is provided', () => {
-    render(
-      <BodyTextModal
-        {...defaultProps}
-        bodyText="Plain text"
         bodyMarkdown="# Heading\n\nParagraph content here."
+        defaultCompareMode={false}
       />
     );
     // With our mock, the raw markdown is rendered
@@ -59,30 +48,9 @@ describe('BodyTextModal', () => {
     expect(markdownContent).toHaveTextContent('Paragraph content here.');
   });
 
-  it('shows fallback notice when markdown is empty but text exists', () => {
-    render(
-      <BodyTextModal
-        {...defaultProps}
-        bodyText="Some plain text"
-        bodyMarkdown=""
-      />
-    );
-    expect(screen.getByText(/Structured view unavailable/)).toBeInTheDocument();
-  });
-
   it('displays search input', () => {
     render(<BodyTextModal {...defaultProps} />);
     expect(screen.getByPlaceholderText('Search text...')).toBeInTheDocument();
-  });
-
-  it('shows compare button when compareBodyText is provided', () => {
-    render(
-      <BodyTextModal
-        {...defaultProps}
-        compareBodyText="No-JS version text"
-      />
-    );
-    expect(screen.getByText(/Compare/)).toBeInTheDocument();
   });
 
   it('shows compare button when compareBodyMarkdown is provided', () => {
@@ -110,19 +78,24 @@ describe('BodyTextModal', () => {
       />
     );
 
-    const compareButton = screen.getByText(/Compare OFF/);
+    // Compare mode is ON by default
+    expect(screen.getByText('Left Panel')).toBeInTheDocument();
+    expect(screen.getByText('Right Panel')).toBeInTheDocument();
+
+    // Toggle compare mode OFF
+    const compareButton = screen.getByText(/Compare ON/);
     fireEvent.click(compareButton);
 
-    // Should show compare mode UI
-    expect(screen.getByText('JS Rendered')).toBeInTheDocument();
-    expect(screen.getByText('No JS')).toBeInTheDocument();
+    // Should hide compare mode UI
+    expect(screen.queryByText('Left Panel')).not.toBeInTheDocument();
+    expect(screen.queryByText('Right Panel')).not.toBeInTheDocument();
   });
 
   it('displays match count when searching', () => {
     render(
       <BodyTextModal
         {...defaultProps}
-        bodyText="hello world hello again hello"
+        bodyMarkdown="hello world hello again hello"
       />
     );
 
@@ -159,62 +132,32 @@ describe('BodyTextModal Compare Mode', () => {
   const compareProps = {
     isOpen: true,
     onClose: vi.fn(),
-    bodyText: 'JS rendered text',
     bodyMarkdown: '# JS Heading\n\nJS paragraph content.',
     wordCount: 5,
-    compareBodyText: 'No-JS text',
     compareBodyMarkdown: '# No-JS Heading\n\nNo-JS paragraph content.',
   };
 
-  it('shows side-by-side comparison in compare mode', () => {
+  it('shows side-by-side comparison in compare mode by default', () => {
     render(<BodyTextModal {...compareProps} />);
 
-    // Toggle compare mode
-    const compareButton = screen.getByText(/Compare OFF/);
-    fireEvent.click(compareButton);
-
-    // Should show both panels
-    expect(screen.getByText('JS Rendered')).toBeInTheDocument();
-    expect(screen.getByText('No JS')).toBeInTheDocument();
-  });
-
-  it('shows fallback notice for each panel without markdown', () => {
-    render(
-      <BodyTextModal
-        isOpen={true}
-        onClose={vi.fn()}
-        bodyText="JS text only"
-        bodyMarkdown=""
-        wordCount={3}
-        compareBodyText="No-JS text only"
-        compareBodyMarkdown=""
-      />
-    );
-
-    // Toggle compare mode
-    const compareButton = screen.getByText(/Compare OFF/);
-    fireEvent.click(compareButton);
-
-    // Both panels should show fallback notice
-    const notices = screen.getAllByText(/Structured view unavailable/);
-    expect(notices.length).toBe(2);
+    // Compare mode is ON by default - should show both panels
+    expect(screen.getByText('Left Panel')).toBeInTheDocument();
+    expect(screen.getByText('Right Panel')).toBeInTheDocument();
   });
 
   it('exits compare mode when toggled off', () => {
     render(<BodyTextModal {...compareProps} />);
 
-    // Toggle compare mode ON
-    const compareButton = screen.getByText(/Compare OFF/);
-    fireEvent.click(compareButton);
-    expect(screen.getByText('JS Rendered')).toBeInTheDocument();
+    // Compare mode is ON by default
+    expect(screen.getByText('Left Panel')).toBeInTheDocument();
 
     // Toggle compare mode OFF
-    const compareOnButton = screen.getByText(/Compare ON/);
-    fireEvent.click(compareOnButton);
+    const compareButton = screen.getByText(/Compare ON/);
+    fireEvent.click(compareButton);
 
     // Should no longer show side-by-side view
-    expect(screen.queryByText('JS Rendered')).not.toBeInTheDocument();
-    expect(screen.queryByText('No JS')).not.toBeInTheDocument();
+    expect(screen.queryByText('Left Panel')).not.toBeInTheDocument();
+    expect(screen.queryByText('Right Panel')).not.toBeInTheDocument();
   });
 });
 
@@ -224,7 +167,7 @@ describe('BodyTextModal Search Navigation', () => {
       <BodyTextModal
         isOpen={true}
         onClose={vi.fn()}
-        bodyText="test test test"
+        bodyMarkdown="test test test"
         wordCount={3}
       />
     );
@@ -242,7 +185,7 @@ describe('BodyTextModal Search Navigation', () => {
       <BodyTextModal
         isOpen={true}
         onClose={vi.fn()}
-        bodyText="test test test"
+        bodyMarkdown="test test test"
         wordCount={3}
       />
     );
@@ -263,7 +206,7 @@ describe('BodyTextModal Search Navigation', () => {
       <BodyTextModal
         isOpen={true}
         onClose={vi.fn()}
-        bodyText="test test test"
+        bodyMarkdown="test test test"
         wordCount={3}
       />
     );

@@ -2,7 +2,6 @@ import { useMemo } from 'react';
 import type { ContentData } from '../../types/content';
 import { TextValue } from '../common/TextValue';
 import { ArrayDiffValue, arraysEqual } from '../common/ArrayDiffValue';
-import { computeWordDiff } from '../../utils/wordDiff';
 import { getSchemaTypeCounts, schemaTypesEqual, getSchemaTypesList } from '../../utils/schemaUtils';
 import styles from './Panel.module.css';
 import arrayStyles from '../common/ArrayDiffValue.module.css';
@@ -15,12 +14,14 @@ interface ContentCardProps {
 }
 
 export function ContentCard({ data, compareData, onOpenBodyTextModal, onOpenWordDiffModal }: ContentCardProps) {
-  const wordDiff = useMemo(() => {
+  // Calculate total word count difference (not unique vocabulary)
+  const wordCountDiff = useMemo(() => {
     if (!compareData) return null;
-    return computeWordDiff(data.bodyText, compareData.bodyText);
-  }, [data.bodyText, compareData?.bodyText]);
+    const diff = data.bodyWords - compareData.bodyWords;
+    return diff;
+  }, [data.bodyWords, compareData?.bodyWords]);
 
-  const hasWordDiff = wordDiff && (wordDiff.added.length > 0 || wordDiff.removed.length > 0);
+  const hasWordCountDiff = wordCountDiff !== null && wordCountDiff !== 0;
 
   return (
     <div className={styles.resultCard}>
@@ -63,7 +64,7 @@ export function ContentCard({ data, compareData, onOpenBodyTextModal, onOpenWord
           </span>
         </div>
 
-        <div className={`${styles.resultRow} ${hasWordDiff ? styles.diffHighlightChanged : ''}`}>
+        <div className={`${styles.resultRow} ${hasWordCountDiff ? styles.diffHighlightChanged : ''}`}>
           <span className={styles.resultLabel}>Body Words</span>
           <span className={styles.resultValue}>
             <button
@@ -73,22 +74,11 @@ export function ContentCard({ data, compareData, onOpenBodyTextModal, onOpenWord
             >
               {data.bodyWords.toLocaleString()}
             </button>
-            {hasWordDiff && (
+            {hasWordCountDiff && wordCountDiff !== null && (
               <span className={styles.wordDiffNumbers}>
-                <button
-                  type="button"
-                  className={styles.wordDiffAdded}
-                  onClick={() => onOpenWordDiffModal?.('added')}
-                >
-                  +{wordDiff.added.length}
-                </button>
-                <button
-                  type="button"
-                  className={styles.wordDiffRemoved}
-                  onClick={() => onOpenWordDiffModal?.('removed')}
-                >
-                  -{wordDiff.removed.length}
-                </button>
+                <span className={wordCountDiff > 0 ? styles.wordDiffAdded : styles.wordDiffRemoved}>
+                  {wordCountDiff > 0 ? '+' : ''}{wordCountDiff.toLocaleString()}
+                </span>
               </span>
             )}
           </span>

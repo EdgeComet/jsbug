@@ -88,6 +88,13 @@ func TestExtractBodyText(t *testing.T) {
 			excludes: []string{"SVG Text", "M0 0"},
 		},
 		{
+			name: "inline SVG preserves word boundary",
+			html: `<html><body><p>Hello<svg><path d="M0"/></svg>World</p></body></html>`,
+			// SVG should be replaced with space, not concatenated
+			contains: []string{"Hello", "World"},
+			excludes: []string{"HelloWorld"},
+		},
+		{
 			name: "whitespace normalization",
 			html: `<html>
 				<body>
@@ -1016,6 +1023,11 @@ func TestExtractBodyMarkdown_EdgeCases(t *testing.T) {
 			expected: "Text",
 		},
 		{
+			name:     "inline svg preserves word boundary",
+			html:     "<html><body><p>Hello<svg><path d=\"M0\"/></svg>World</p></body></html>",
+			expected: "Hello World",
+		},
+		{
 			name:     "empty body",
 			html:     "<html><body></body></html>",
 			expected: "",
@@ -1044,6 +1056,16 @@ func TestExtractBodyMarkdown_EdgeCases(t *testing.T) {
 			name:     "mixed case tags",
 			html:     "<HTML><BODY><P>Text</P></BODY></HTML>",
 			expected: "Text",
+		},
+		{
+			name:     "adjacent button elements need spacing",
+			html:     `<html><body><div><button>Video</button><button>Written</button></div></body></html>`,
+			expected: "Video Written",
+		},
+		{
+			name:     "adjacent span elements need spacing",
+			html:     `<html><body><div><span>First</span><span>Second</span></div></body></html>`,
+			expected: "First Second",
 		},
 	}
 

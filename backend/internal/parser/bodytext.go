@@ -57,6 +57,11 @@ func hasSemanticDescendant(n *html.Node) bool {
 	return false
 }
 
+// skipElements are elements whose content should be skipped during text extraction
+var skipElements = map[string]bool{
+	"svg": true,
+}
+
 // extractText recursively extracts text from an HTML node tree.
 // It adds a space before and after ALL elements to ensure proper word separation.
 // Excess spaces are cleaned up by whitespace normalization later.
@@ -64,6 +69,10 @@ func extractText(n *html.Node, buf *strings.Builder) {
 	// Add space before element
 	if n.Type == html.ElementNode {
 		buf.WriteString(" ")
+		// Skip content of certain elements (like svg) but preserve word boundary
+		if skipElements[strings.ToLower(n.Data)] {
+			return
+		}
 	}
 	if n.Type == html.TextNode {
 		buf.WriteString(n.Data)
@@ -85,8 +94,8 @@ func ExtractBodyText(doc *goquery.Document) string {
 	// Clone the document to avoid modifying the original
 	clonedDoc := doc.Clone()
 
-	// Remove non-visible elements
-	clonedDoc.Find("script, style, noscript, iframe, svg, head").Remove()
+	// Remove non-visible elements (svg is handled during text extraction to preserve word boundaries)
+	clonedDoc.Find("script, style, noscript, iframe, head").Remove()
 
 	// Extract text from body (or entire document if no body)
 	var buf strings.Builder
@@ -123,7 +132,8 @@ func ExtractBodyMarkdown(doc *goquery.Document) string {
 	}
 
 	clonedDoc := doc.Clone()
-	clonedDoc.Find("script, style, noscript, iframe, svg, head").Remove()
+	// Remove non-visible elements (svg is handled during text extraction to preserve word boundaries)
+	clonedDoc.Find("script, style, noscript, iframe, head").Remove()
 
 	var buf strings.Builder
 
@@ -170,6 +180,11 @@ func extractMarkdownWithSections(n *html.Node, buf *strings.Builder, sectionCoun
 	}
 
 	tag := strings.ToLower(n.Data)
+
+	// Skip elements that should not be included in markdown output
+	if skipElements[tag] {
+		return
+	}
 
 	// Check for semantic element or ARIA role
 	label, isSemantic := semanticElements[tag]
@@ -282,8 +297,16 @@ func extractMarkdownWithSections(n *html.Node, buf *strings.Builder, sectionCoun
 		extractTable(n, buf)
 		buf.WriteString("\n")
 	default:
+		// Only add spacing if element has text content (for word separation)
+		hasContent := strings.TrimSpace(getTextContent(n)) != ""
+		if hasContent {
+			buf.WriteString(" ")
+		}
 		for c := n.FirstChild; c != nil; c = c.NextSibling {
 			extractMarkdownWithSections(c, buf, sectionCounts)
+		}
+		if hasContent {
+			buf.WriteString(" ")
 		}
 	}
 }
@@ -304,6 +327,10 @@ func extractPlainText(n *html.Node, buf *strings.Builder) {
 	}
 	if n.Type == html.ElementNode {
 		buf.WriteString(" ")
+		// Skip content of certain elements (like svg) but preserve word boundary
+		if skipElements[strings.ToLower(n.Data)] {
+			return
+		}
 	}
 	for c := n.FirstChild; c != nil; c = c.NextSibling {
 		extractPlainText(c, buf)
@@ -363,6 +390,12 @@ func extractInlineContent(n *html.Node, buf *strings.Builder, state formattingSt
 	}
 
 	tag := strings.ToLower(n.Data)
+
+	// Skip elements like svg, outputting space to preserve word boundary
+	if skipElements[tag] {
+		buf.WriteString(" ")
+		return
+	}
 
 	switch tag {
 	case "strong", "b":
@@ -433,6 +466,9 @@ func normalizeMarkdown(md string) string {
 	// Replace 3+ newlines with 2
 	re := regexp.MustCompile(`\n{3,}`)
 	md = re.ReplaceAllString(md, "\n\n")
+	// Collapse multiple spaces (not newlines) to single space
+	spaceRe := regexp.MustCompile(` {2,}`)
+	md = spaceRe.ReplaceAllString(md, " ")
 	return strings.TrimSpace(md)
 }
 

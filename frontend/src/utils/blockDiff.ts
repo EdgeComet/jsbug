@@ -99,12 +99,18 @@ export function computeBlockDiff(leftMarkdown: string, rightMarkdown: string): D
       } else {
         matchedRight.add(bestMatch);
 
-        if (bestScore >= 0.9) {
-          // Unchanged
+        // Count actual words (not just unique) to detect quantity differences
+        const leftWordCount = leftBlock.split(/\s+/).filter(w => w).length;
+        const rightWordCount = rightBlock.split(/\s+/).filter(w => w).length;
+        const wordCountRatio = Math.max(leftWordCount, rightWordCount) / Math.max(1, Math.min(leftWordCount, rightWordCount));
+
+        // If word counts differ significantly (>20%) or similarity is <0.9, mark as modified
+        if (bestScore >= 0.9 && wordCountRatio <= 1.2) {
+          // Unchanged - high similarity AND similar word counts
           leftResult.push({ type: 'unchanged', blockType: leftType, content: leftBlock });
           rightResult.push({ type: 'unchanged', blockType: leftType, content: rightBlock });
         } else {
-          // Modified
+          // Modified - either vocabulary or word count differs
           leftResult.push({ type: 'modified', blockType: leftType, content: leftBlock, otherContent: rightBlock });
           rightResult.push({ type: 'modified', blockType: leftType, content: rightBlock, otherContent: leftBlock });
         }

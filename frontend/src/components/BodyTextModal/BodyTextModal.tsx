@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { highlightText } from '../../utils/highlightText';
+import { computeBlockDiff } from '../../utils/blockDiff';
 import { Modal } from '../common/Modal';
 import { FilterInput } from '../common/FilterInput';
 import { MatchCountBadge } from '../common/MatchCountBadge/MatchCountBadge';
@@ -13,54 +13,25 @@ import styles from './BodyTextModal.module.css';
 interface BodyTextModalProps {
   isOpen: boolean;
   onClose: () => void;
-  bodyText: string;
-  bodyMarkdown?: string;
+  bodyMarkdown: string;
   wordCount: number;
-  compareBodyText?: string;      // no-JS body text
-  compareBodyMarkdown?: string;  // no-JS body markdown
+  compareBodyMarkdown?: string;  // other panel's body markdown
   isLoading?: boolean;
+  defaultCompareMode?: boolean;
+  side?: 'left' | 'right';       // which panel opened the modal
 }
 
-interface BlockPosition {
-  index: number;
-  top: number;
-  height: number;
-}
-
-export function BodyTextModal({ isOpen, onClose, bodyText, bodyMarkdown, wordCount, compareBodyText, compareBodyMarkdown, isLoading = false }: BodyTextModalProps) {
+export function BodyTextModal({ isOpen, onClose, bodyMarkdown, wordCount, compareBodyMarkdown, isLoading = false, defaultCompareMode = true, side = 'left' }: BodyTextModalProps) {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
-  const [compareMode, setCompareMode] = useState(false);
+  const [compareMode, setCompareMode] = useState(defaultCompareMode);
+  const [currentChangeIndex, setCurrentChangeIndex] = useState(0);
   const bodyRef = useRef<HTMLDivElement>(null);
   const leftPanelRef = useRef<HTMLDivElement>(null);
   const rightPanelRef = useRef<HTMLDivElement>(null);
   const isScrolling = useRef(false);
-  const [leftBlockPositions, setLeftBlockPositions] = useState<BlockPosition[]>([]);
-  const [rightBlockPositions, setRightBlockPositions] = useState<BlockPosition[]>([]);
 
-  // Measure block positions after render
-  useEffect(() => {
-    if (!compareMode) return;
-
-    const measureBlocks = (container: HTMLElement | null): BlockPosition[] => {
-      if (!container) return [];
-      const blocks = container.querySelectorAll('[data-block-index]');
-      return Array.from(blocks).map((block, i) => ({
-        index: i,
-        top: (block as HTMLElement).offsetTop,
-        height: (block as HTMLElement).offsetHeight,
-      }));
-    };
-
-    // Use setTimeout to ensure DOM is updated
-    const timer = setTimeout(() => {
-      setLeftBlockPositions(measureBlocks(leftPanelRef.current));
-      setRightBlockPositions(measureBlocks(rightPanelRef.current));
-    }, 100);
-
-    return () => clearTimeout(timer);
-  }, [compareMode, bodyMarkdown, compareBodyMarkdown]);
 
   // Improved scroll sync with block alignment
   const handleScroll = useCallback((source: 'left' | 'right') => {
@@ -69,82 +40,87 @@ export function BodyTextModal({ isOpen, onClose, bodyText, bodyMarkdown, wordCou
 
     const sourceRef = source === 'left' ? leftPanelRef : rightPanelRef;
     const targetRef = source === 'left' ? rightPanelRef : leftPanelRef;
-    const sourcePositions = source === 'left' ? leftBlockPositions : rightBlockPositions;
-    const targetPositions = source === 'left' ? rightBlockPositions : leftBlockPositions;
 
-    if (!sourceRef.current || !targetRef.current || sourcePositions.length === 0) {
-      // Fall back to percentage-based sync
-      if (sourceRef.current && targetRef.current) {
-        const scrollPercentage = sourceRef.current.scrollTop /
-          Math.max(1, sourceRef.current.scrollHeight - sourceRef.current.clientHeight);
-        targetRef.current.scrollTop = scrollPercentage *
-          (targetRef.current.scrollHeight - targetRef.current.clientHeight);
-      }
+    if (!sourceRef.current || !targetRef.current) {
       requestAnimationFrame(() => {
         isScrolling.current = false;
       });
       return;
     }
 
-    const scrollTop = sourceRef.current.scrollTop;
-    const viewportCenter = scrollTop + sourceRef.current.clientHeight / 2;
+    const sourceHeight = sourceRef.current.scrollHeight;
+    const targetHeight = targetRef.current.scrollHeight;
+    const heightDiff = Math.abs(sourceHeight - targetHeight);
+    const maxHeight = Math.max(sourceHeight, targetHeight);
 
-    // Find which block is in the center of viewport
-    let activeBlockIndex = 0;
-    for (let i = 0; i < sourcePositions.length; i++) {
-      if (sourcePositions[i].top + sourcePositions[i].height / 2 > viewportCenter) {
-        break;
-      }
-      activeBlockIndex = i;
+    // Use 1:1 scroll sync when heights are similar (within 5% or 100px)
+    const heightsAreSimilar = heightDiff < 100 || (heightDiff / maxHeight) < 0.05;
+
+    if (heightsAreSimilar) {
+      targetRef.current.scrollTop = sourceRef.current.scrollTop;
+      requestAnimationFrame(() => {
+        isScrolling.current = false;
+      });
+      return;
     }
 
-    // Scroll target to align matching block
-    if (targetPositions[activeBlockIndex]) {
-      const targetScrollTop = targetPositions[activeBlockIndex].top -
-        sourceRef.current.clientHeight / 2 +
-        targetPositions[activeBlockIndex].height / 2;
-
-      targetRef.current.scrollTop = Math.max(0, targetScrollTop);
-    }
+    // For significantly different heights, use percentage-based sync
+    const scrollPercentage = sourceRef.current.scrollTop /
+      Math.max(1, sourceRef.current.scrollHeight - sourceRef.current.clientHeight);
+    targetRef.current.scrollTop = scrollPercentage *
+      (targetRef.current.scrollHeight - targetRef.current.clientHeight);
 
     requestAnimationFrame(() => {
       isScrolling.current = false;
     });
-  }, [leftBlockPositions, rightBlockPositions]);
+  }, []);
 
-  const hasCompareData = !!compareBodyMarkdown || !!compareBodyText;
+  const hasCompareData = !!compareBodyMarkdown;
 
   useEffect(() => {
     if (isOpen) {
       setSearchTerm('');
       setCurrentMatchIndex(0);
-      setCompareMode(false);
+      setCompareMode(defaultCompareMode);
       // Focus search input when modal opens
       requestAnimationFrame(() => {
         searchInputRef.current?.focus();
       });
     }
-  }, [isOpen]);
+  }, [isOpen, defaultCompareMode]);
 
   useEffect(() => {
     setCurrentMatchIndex(0);
   }, [searchTerm]);
 
-  const hasMarkdown = bodyMarkdown && bodyMarkdown.trim().length > 0;
-  const hasCompareMarkdown = compareBodyMarkdown && compareBodyMarkdown.trim().length > 0;
+  // Swap content based on which panel opened the modal
+  // Left column should always show left panel content, right column shows right panel content
+  const leftColumnMarkdown = side === 'left' ? bodyMarkdown : (compareBodyMarkdown || '');
+  const rightColumnMarkdown = side === 'left' ? (compareBodyMarkdown || '') : bodyMarkdown;
+
+  // Compute changed block indices for diff navigation (uses swapped content)
+  const changedBlockIndices = useMemo(() => {
+    if (!leftColumnMarkdown || !rightColumnMarkdown) return [];
+    const { leftBlocks } = computeBlockDiff(leftColumnMarkdown, rightColumnMarkdown);
+    return leftBlocks
+      .map((block, i) => block.type !== 'unchanged' ? i : -1)
+      .filter(i => i !== -1);
+  }, [leftColumnMarkdown, rightColumnMarkdown]);
+
+  const changeCount = changedBlockIndices.length;
 
   // Content size calculations
-  const contentLength = (bodyMarkdown || bodyText).length;
+  const contentLength = bodyMarkdown.length;
   const isLargeContent = contentLength > 100000; // 100KB
-  const isContentEmpty = !bodyText && !bodyMarkdown;
+  const isContentEmpty = !bodyMarkdown.trim();
 
   const matchCount = useMemo(() => {
     if (!searchTerm.trim()) return 0;
-    const textToSearch = hasMarkdown ? bodyMarkdown : bodyText;
+    const textToSearch = compareMode ? leftColumnMarkdown : bodyMarkdown;
     const regex = new RegExp(searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
     const matches = textToSearch.match(regex);
     return matches ? matches.length : 0;
-  }, [bodyText, bodyMarkdown, hasMarkdown, searchTerm]);
+  }, [bodyMarkdown, searchTerm, compareMode, leftColumnMarkdown]);
 
   const goToNextMatch = useCallback(() => {
     if (matchCount > 0) {
@@ -158,21 +134,108 @@ export function BodyTextModal({ isOpen, onClose, bodyText, bodyMarkdown, wordCou
     }
   }, [matchCount]);
 
-  useEffect(() => {
-    if (searchTerm.trim() && bodyRef.current) {
-      const matches = bodyRef.current.querySelectorAll('mark');
-      matches.forEach((m, i) => {
-        m.classList.toggle(highlightStyles.highlightActive, i === currentMatchIndex);
-      });
-      if (matches[currentMatchIndex]) {
-        matches[currentMatchIndex].scrollIntoView({ behavior: 'instant', block: 'center' });
-      }
+  const goToNextChange = useCallback(() => {
+    if (changeCount > 0) {
+      setCurrentChangeIndex((prev) => (prev + 1) % changeCount);
     }
-  }, [searchTerm, currentMatchIndex]);
+  }, [changeCount]);
 
-  const headerExtra = searchTerm && matchCount > 0 ? (
-    <MatchCountBadge count={matchCount} />
-  ) : null;
+  const goToPrevChange = useCallback(() => {
+    if (changeCount > 0) {
+      setCurrentChangeIndex((prev) => (prev - 1 + changeCount) % changeCount);
+    }
+  }, [changeCount]);
+
+  // Scroll to current change and highlight it
+  useEffect(() => {
+    if (!compareMode || changeCount === 0) return;
+
+    const blockIndex = changedBlockIndices[currentChangeIndex];
+
+    // Remove highlight from all blocks in both panels
+    [leftPanelRef, rightPanelRef].forEach(ref => {
+      ref.current?.querySelectorAll(`.${styles.activeChange}`).forEach(el => {
+        el.classList.remove(styles.activeChange);
+      });
+    });
+
+    // Add highlight and scroll to current block in both panels
+    [leftPanelRef, rightPanelRef].forEach(ref => {
+      const blockElement = ref.current?.querySelector(
+        `[data-block-index="${blockIndex}"]`
+      );
+      if (blockElement) {
+        blockElement.classList.add(styles.activeChange);
+      }
+    });
+
+    // Scroll left panel (right will follow via scroll sync)
+    const leftBlock = leftPanelRef.current?.querySelector(
+      `[data-block-index="${blockIndex}"]`
+    );
+    if (leftBlock) {
+      leftBlock.scrollIntoView({ behavior: 'instant', block: 'center' });
+    }
+  }, [currentChangeIndex, compareMode, changeCount, changedBlockIndices]);
+
+  // Reset change index when content changes
+  useEffect(() => {
+    setCurrentChangeIndex(0);
+  }, [bodyMarkdown, compareBodyMarkdown]);
+
+  useEffect(() => {
+    if (!searchTerm.trim()) return;
+
+    // In compare mode, use left panel; otherwise use bodyRef
+    const container = compareMode ? leftPanelRef.current : bodyRef.current;
+    if (!container) return;
+
+    const matches = container.querySelectorAll('mark');
+    matches.forEach((m, i) => {
+      m.classList.toggle(highlightStyles.highlightActive, i === currentMatchIndex);
+    });
+    if (matches[currentMatchIndex]) {
+      matches[currentMatchIndex].scrollIntoView({ behavior: 'instant', block: 'center' });
+    }
+  }, [searchTerm, currentMatchIndex, compareMode]);
+
+  const headerExtra = (
+    <>
+      {searchTerm && matchCount > 0 && <MatchCountBadge count={matchCount} />}
+      {hasCompareData && (
+        <button
+          className={`${styles.toggleButton} ${compareMode ? styles.active : ''}`}
+          onClick={() => setCompareMode(!compareMode)}
+          aria-pressed={compareMode}
+        >
+          Compare {compareMode ? 'ON' : 'OFF'}
+        </button>
+      )}
+      {compareMode && changeCount > 0 && (
+        <div className={styles.changeNavigation}>
+          <button
+            className={styles.changeNavButton}
+            onClick={goToPrevChange}
+            aria-label="Previous change"
+            title="Previous change"
+          >
+            &lt;
+          </button>
+          <span className={styles.changeCount}>
+            {currentChangeIndex + 1} / {changeCount}
+          </span>
+          <button
+            className={styles.changeNavButton}
+            onClick={goToNextChange}
+            aria-label="Next change"
+            title="Next change"
+          >
+            &gt;
+          </button>
+        </div>
+      )}
+    </>
+  );
 
   return (
     <Modal
@@ -184,7 +247,7 @@ export function BodyTextModal({ isOpen, onClose, bodyText, bodyMarkdown, wordCou
       searchInputRef={searchInputRef}
     >
       <div className={filterStyles.modalFilters}>
-        <div role="search" aria-label="Search within content">
+        <div role="search" aria-label="Search within content" className={styles.searchWrapper}>
           <FilterInput
             ref={searchInputRef}
             placeholder="Search text..."
@@ -210,15 +273,6 @@ export function BodyTextModal({ isOpen, onClose, bodyText, bodyMarkdown, wordCou
           onPrevious={goToPrevMatch}
           onNext={goToNextMatch}
         />
-        {hasCompareData && (
-          <button
-            className={`${styles.toggleButton} ${compareMode ? styles.active : ''}`}
-            onClick={() => setCompareMode(!compareMode)}
-            aria-pressed={compareMode}
-          >
-            Compare {compareMode ? 'ON' : 'OFF'}
-          </button>
-        )}
         <div className={styles.keyboardHints} aria-hidden="true">
           <span><kbd>Enter</kbd> Next match</span>
           <span><kbd>Shift+Enter</kbd> Previous match</span>
@@ -247,70 +301,52 @@ export function BodyTextModal({ isOpen, onClose, bodyText, bodyMarkdown, wordCou
             </div>
           )}
           <div className={styles.compareColumn}>
-            <div className={styles.columnHeader}>JS Rendered</div>
+            <div className={styles.columnHeader}>Left Panel</div>
             <div
               ref={leftPanelRef}
               className={styles.columnContent}
               onScroll={() => handleScroll('left')}
               tabIndex={0}
-              aria-label="JS Rendered content"
+              aria-label="Left panel content"
             >
-              {!hasMarkdown && bodyText && (
-                <div className={styles.fallbackNotice}>
-                  Structured view unavailable. Showing plain text.
-                </div>
-              )}
-              {hasMarkdown && hasCompareMarkdown ? (
+              {leftColumnMarkdown && rightColumnMarkdown ? (
                 <DiffMarkdownContent
-                  leftContent={bodyMarkdown || ''}
-                  rightContent={compareBodyMarkdown || ''}
+                  leftContent={leftColumnMarkdown}
+                  rightContent={rightColumnMarkdown}
                   searchTerm={searchTerm}
                   side="left"
                 />
-              ) : hasMarkdown ? (
+              ) : (
                 <MarkdownContent
-                  content={bodyMarkdown || ''}
+                  content={leftColumnMarkdown}
                   searchTerm={searchTerm}
                   activeMatchIndex={currentMatchIndex}
                 />
-              ) : (
-                <div className={styles.textContent}>
-                  {highlightText(bodyText, searchTerm, highlightStyles.highlight)}
-                </div>
               )}
             </div>
           </div>
           <div className={styles.compareDivider} aria-hidden="true" />
           <div className={styles.compareColumn}>
-            <div className={styles.columnHeader}>No JS</div>
+            <div className={styles.columnHeader}>Right Panel</div>
             <div
               ref={rightPanelRef}
               className={styles.columnContent}
               onScroll={() => handleScroll('right')}
               tabIndex={0}
-              aria-label="No JS content"
+              aria-label="Right panel content"
             >
-              {!hasCompareMarkdown && compareBodyText && (
-                <div className={styles.fallbackNotice}>
-                  Structured view unavailable. Showing plain text.
-                </div>
-              )}
-              {hasMarkdown && hasCompareMarkdown ? (
+              {leftColumnMarkdown && rightColumnMarkdown ? (
                 <DiffMarkdownContent
-                  leftContent={bodyMarkdown || ''}
-                  rightContent={compareBodyMarkdown || ''}
+                  leftContent={leftColumnMarkdown}
+                  rightContent={rightColumnMarkdown}
                   searchTerm={searchTerm}
                   side="right"
                 />
-              ) : hasCompareMarkdown ? (
+              ) : (
                 <MarkdownContent
-                  content={compareBodyMarkdown}
+                  content={rightColumnMarkdown}
                   searchTerm={searchTerm}
                 />
-              ) : (
-                <div className={styles.textContent}>
-                  {highlightText(compareBodyText || '', searchTerm, highlightStyles.highlight)}
-                </div>
               )}
             </div>
           </div>
@@ -328,22 +364,11 @@ export function BodyTextModal({ isOpen, onClose, bodyText, bodyMarkdown, wordCou
               Large document ({Math.round(contentLength / 1024)}KB). Scrolling may be slow.
             </div>
           )}
-          {!hasMarkdown && bodyText && (
-            <div className={styles.fallbackNotice}>
-              Structured view unavailable. Showing plain text.
-            </div>
-          )}
-          {hasMarkdown ? (
-            <MarkdownContent
-              content={bodyMarkdown || ''}
-              searchTerm={searchTerm}
-              activeMatchIndex={currentMatchIndex}
-            />
-          ) : (
-            <div className={styles.textContent}>
-              {highlightText(bodyText, searchTerm, highlightStyles.highlight)}
-            </div>
-          )}
+          <MarkdownContent
+            content={bodyMarkdown}
+            searchTerm={searchTerm}
+            activeMatchIndex={currentMatchIndex}
+          />
         </div>
       )}
     </Modal>
