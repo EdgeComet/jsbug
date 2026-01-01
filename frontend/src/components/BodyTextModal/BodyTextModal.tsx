@@ -13,15 +13,14 @@ import styles from './BodyTextModal.module.css';
 interface BodyTextModalProps {
   isOpen: boolean;
   onClose: () => void;
-  bodyMarkdown: string;
+  leftBodyMarkdown: string;
+  rightBodyMarkdown?: string;
   wordCount: number;
-  compareBodyMarkdown?: string;  // other panel's body markdown
   isLoading?: boolean;
   defaultCompareMode?: boolean;
-  side?: 'left' | 'right';       // which panel opened the modal
 }
 
-export function BodyTextModal({ isOpen, onClose, bodyMarkdown, wordCount, compareBodyMarkdown, isLoading = false, defaultCompareMode = true, side = 'left' }: BodyTextModalProps) {
+export function BodyTextModal({ isOpen, onClose, leftBodyMarkdown, rightBodyMarkdown, wordCount, isLoading = false, defaultCompareMode = true }: BodyTextModalProps) {
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
@@ -75,7 +74,7 @@ export function BodyTextModal({ isOpen, onClose, bodyMarkdown, wordCount, compar
     });
   }, []);
 
-  const hasCompareData = !!compareBodyMarkdown;
+  const hasCompareData = !!rightBodyMarkdown;
 
   useEffect(() => {
     if (isOpen) {
@@ -93,34 +92,28 @@ export function BodyTextModal({ isOpen, onClose, bodyMarkdown, wordCount, compar
     setCurrentMatchIndex(0);
   }, [searchTerm]);
 
-  // Swap content based on which panel opened the modal
-  // Left column should always show left panel content, right column shows right panel content
-  const leftColumnMarkdown = side === 'left' ? bodyMarkdown : (compareBodyMarkdown || '');
-  const rightColumnMarkdown = side === 'left' ? (compareBodyMarkdown || '') : bodyMarkdown;
-
-  // Compute changed block indices for diff navigation (uses swapped content)
+  // Compute changed block indices for diff navigation
   const changedBlockIndices = useMemo(() => {
-    if (!leftColumnMarkdown || !rightColumnMarkdown) return [];
-    const { leftBlocks } = computeBlockDiff(leftColumnMarkdown, rightColumnMarkdown);
+    if (!leftBodyMarkdown || !rightBodyMarkdown) return [];
+    const { leftBlocks } = computeBlockDiff(leftBodyMarkdown, rightBodyMarkdown);
     return leftBlocks
       .map((block, i) => block.type !== 'unchanged' ? i : -1)
       .filter(i => i !== -1);
-  }, [leftColumnMarkdown, rightColumnMarkdown]);
+  }, [leftBodyMarkdown, rightBodyMarkdown]);
 
   const changeCount = changedBlockIndices.length;
 
   // Content size calculations
-  const contentLength = bodyMarkdown.length;
+  const contentLength = leftBodyMarkdown.length;
   const isLargeContent = contentLength > 100000; // 100KB
-  const isContentEmpty = !bodyMarkdown.trim();
+  const isContentEmpty = !leftBodyMarkdown.trim();
 
   const matchCount = useMemo(() => {
     if (!searchTerm.trim()) return 0;
-    const textToSearch = compareMode ? leftColumnMarkdown : bodyMarkdown;
     const regex = new RegExp(searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi');
-    const matches = textToSearch.match(regex);
+    const matches = leftBodyMarkdown.match(regex);
     return matches ? matches.length : 0;
-  }, [bodyMarkdown, searchTerm, compareMode, leftColumnMarkdown]);
+  }, [leftBodyMarkdown, searchTerm]);
 
   const goToNextMatch = useCallback(() => {
     if (matchCount > 0) {
@@ -181,7 +174,7 @@ export function BodyTextModal({ isOpen, onClose, bodyMarkdown, wordCount, compar
   // Reset change index when content changes
   useEffect(() => {
     setCurrentChangeIndex(0);
-  }, [bodyMarkdown, compareBodyMarkdown]);
+  }, [leftBodyMarkdown, rightBodyMarkdown]);
 
   useEffect(() => {
     if (!searchTerm.trim()) return;
@@ -309,16 +302,16 @@ export function BodyTextModal({ isOpen, onClose, bodyMarkdown, wordCount, compar
               tabIndex={0}
               aria-label="Left panel content"
             >
-              {leftColumnMarkdown && rightColumnMarkdown ? (
+              {leftBodyMarkdown && rightBodyMarkdown ? (
                 <DiffMarkdownContent
-                  leftContent={leftColumnMarkdown}
-                  rightContent={rightColumnMarkdown}
+                  leftContent={leftBodyMarkdown}
+                  rightContent={rightBodyMarkdown}
                   searchTerm={searchTerm}
                   side="left"
                 />
               ) : (
                 <MarkdownContent
-                  content={leftColumnMarkdown}
+                  content={leftBodyMarkdown}
                   searchTerm={searchTerm}
                   activeMatchIndex={currentMatchIndex}
                 />
@@ -335,16 +328,16 @@ export function BodyTextModal({ isOpen, onClose, bodyMarkdown, wordCount, compar
               tabIndex={0}
               aria-label="Right panel content"
             >
-              {leftColumnMarkdown && rightColumnMarkdown ? (
+              {leftBodyMarkdown && rightBodyMarkdown ? (
                 <DiffMarkdownContent
-                  leftContent={leftColumnMarkdown}
-                  rightContent={rightColumnMarkdown}
+                  leftContent={leftBodyMarkdown}
+                  rightContent={rightBodyMarkdown}
                   searchTerm={searchTerm}
                   side="right"
                 />
               ) : (
                 <MarkdownContent
-                  content={rightColumnMarkdown}
+                  content={rightBodyMarkdown || ''}
                   searchTerm={searchTerm}
                 />
               )}
@@ -365,7 +358,7 @@ export function BodyTextModal({ isOpen, onClose, bodyMarkdown, wordCount, compar
             </div>
           )}
           <MarkdownContent
-            content={bodyMarkdown}
+            content={leftBodyMarkdown}
             searchTerm={searchTerm}
             activeMatchIndex={currentMatchIndex}
           />

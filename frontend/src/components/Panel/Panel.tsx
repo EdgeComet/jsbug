@@ -209,11 +209,10 @@ export function Panel({
       <BodyTextModal
         isOpen={bodyTextModalOpen}
         onClose={() => setBodyTextModalOpen(false)}
-        bodyMarkdown={content.bodyMarkdown}
+        leftBodyMarkdown={side === 'left' ? content.bodyMarkdown : (compareData?.content?.bodyMarkdown || '')}
+        rightBodyMarkdown={side === 'left' ? compareData?.content?.bodyMarkdown : content.bodyMarkdown}
         wordCount={content.bodyWords}
-        compareBodyMarkdown={compareData?.content?.bodyMarkdown}
         defaultCompareMode={jsEnabled}
-        side={side}
       />
 
       <WordDiffModal

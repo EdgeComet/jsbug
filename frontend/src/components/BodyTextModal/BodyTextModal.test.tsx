@@ -19,7 +19,7 @@ describe('BodyTextModal', () => {
   const defaultProps = {
     isOpen: true,
     onClose: vi.fn(),
-    bodyMarkdown: 'Plain text content',
+    leftBodyMarkdown: 'Plain text content',
     wordCount: 3,
   };
 
@@ -38,7 +38,7 @@ describe('BodyTextModal', () => {
     render(
       <BodyTextModal
         {...defaultProps}
-        bodyMarkdown="# Heading\n\nParagraph content here."
+        leftBodyMarkdown="# Heading\n\nParagraph content here."
         defaultCompareMode={false}
       />
     );
@@ -53,12 +53,12 @@ describe('BodyTextModal', () => {
     expect(screen.getByPlaceholderText('Search text...')).toBeInTheDocument();
   });
 
-  it('shows compare button when compareBodyMarkdown is provided', () => {
+  it('shows compare button when rightBodyMarkdown is provided', () => {
     render(
       <BodyTextModal
         {...defaultProps}
-        bodyMarkdown="# JS Content"
-        compareBodyMarkdown="# No-JS Content"
+        leftBodyMarkdown="# JS Content"
+        rightBodyMarkdown="# No-JS Content"
       />
     );
     expect(screen.getByText(/Compare/)).toBeInTheDocument();
@@ -73,8 +73,8 @@ describe('BodyTextModal', () => {
     render(
       <BodyTextModal
         {...defaultProps}
-        bodyMarkdown="# JS Content"
-        compareBodyMarkdown="# No-JS Content"
+        leftBodyMarkdown="# JS Content"
+        rightBodyMarkdown="# No-JS Content"
       />
     );
 
@@ -95,7 +95,7 @@ describe('BodyTextModal', () => {
     render(
       <BodyTextModal
         {...defaultProps}
-        bodyMarkdown="hello world hello again hello"
+        leftBodyMarkdown="hello world hello again hello"
       />
     );
 
@@ -132,9 +132,9 @@ describe('BodyTextModal Compare Mode', () => {
   const compareProps = {
     isOpen: true,
     onClose: vi.fn(),
-    bodyMarkdown: '# JS Heading\n\nJS paragraph content.',
+    leftBodyMarkdown: '# JS Heading\n\nJS paragraph content.',
     wordCount: 5,
-    compareBodyMarkdown: '# No-JS Heading\n\nNo-JS paragraph content.',
+    rightBodyMarkdown: '# No-JS Heading\n\nNo-JS paragraph content.',
   };
 
   it('shows side-by-side comparison in compare mode by default', () => {
@@ -167,7 +167,7 @@ describe('BodyTextModal Search Navigation', () => {
       <BodyTextModal
         isOpen={true}
         onClose={vi.fn()}
-        bodyMarkdown="test test test"
+        leftBodyMarkdown="test test test"
         wordCount={3}
       />
     );
@@ -185,7 +185,7 @@ describe('BodyTextModal Search Navigation', () => {
       <BodyTextModal
         isOpen={true}
         onClose={vi.fn()}
-        bodyMarkdown="test test test"
+        leftBodyMarkdown="test test test"
         wordCount={3}
       />
     );
@@ -206,7 +206,7 @@ describe('BodyTextModal Search Navigation', () => {
       <BodyTextModal
         isOpen={true}
         onClose={vi.fn()}
-        bodyMarkdown="test test test"
+        leftBodyMarkdown="test test test"
         wordCount={3}
       />
     );
