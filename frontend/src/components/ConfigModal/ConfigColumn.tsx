@@ -112,12 +112,11 @@ export function ConfigColumn({ side, config, onChange, customUaError }: ConfigCo
         </div>
 
         {/* Timeout Slider */}
-        <div className={`${styles.configRow} ${!config.jsEnabled ? styles.configRowDisabled : ''}`}>
+        <div className={styles.configRow}>
           <span className={styles.configLabel}>Timeout</span>
           <TimeoutSlider
             value={config.timeout}
             onChange={(timeout) => onChange({ ...config, timeout })}
-            disabled={!config.jsEnabled}
           />
         </div>
 

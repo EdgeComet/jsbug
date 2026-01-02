@@ -4,7 +4,7 @@ import type { AppConfig, PanelConfig } from '../types/config';
 export const defaultLeftConfig: PanelConfig = {
   jsEnabled: true,
   userAgent: 'chrome-mobile',
-  timeout: 15,
+  timeout: 10,
   waitFor: 'networkIdle',
   // WARNING: If imagesMedia default changes, update parsePanelFromParams in urlState.ts
   // The parser hardcodes false for missing URL params, assuming this default is false
