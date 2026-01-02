@@ -154,7 +154,7 @@ function AppContent() {
 
   const handleCompare = async (overrideConfig?: AppConfig, urlOverride?: string, retryCount = 0) => {
     const effectiveConfig = overrideConfig ?? config
-    const effectiveUrl = urlOverride ?? url
+    const effectiveUrl = (urlOverride ?? url).trim()
 
     // Cancel any active pool exhaustion retries
     leftPanel.cancelRetry()

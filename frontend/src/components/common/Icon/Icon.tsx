@@ -2,6 +2,7 @@ export type IconName =
   | 'alert-circle'
   | 'alert-triangle'
   | 'bug'
+  | 'check'
   | 'chevron-down'
   | 'chevron-up'
   | 'clipboard'
@@ -80,6 +81,8 @@ function getIconPaths(name: IconName) {
           <path d="M18 17h4" />
         </>
       );
+    case 'check':
+      return <polyline points="20 6 9 17 4 12" />;
     case 'chevron-down':
       return <polyline points="6 9 12 15 18 9" />;
     case 'chevron-up':

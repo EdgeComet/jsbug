@@ -1,5 +1,8 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { computeBlockDiff } from '../../utils/blockDiff';
+import { getPanelLabel } from '../../utils/panelLabel';
+import { Icon } from '../common/Icon';
+import type { AppConfig } from '../../types/config';
 import { Modal } from '../common/Modal';
 import { FilterInput } from '../common/FilterInput';
 import { MatchCountBadge } from '../common/MatchCountBadge/MatchCountBadge';
@@ -18,19 +21,31 @@ interface BodyTextModalProps {
   wordCount: number;
   isLoading?: boolean;
   defaultCompareMode?: boolean;
+  url?: string;
+  config?: AppConfig;
 }
 
-export function BodyTextModal({ isOpen, onClose, leftBodyMarkdown, rightBodyMarkdown, wordCount, isLoading = false, defaultCompareMode = true }: BodyTextModalProps) {
+export function BodyTextModal({ isOpen, onClose, leftBodyMarkdown, rightBodyMarkdown, wordCount, isLoading = false, defaultCompareMode = true, url, config }: BodyTextModalProps) {
+  const leftLabel = config ? getPanelLabel(config.left) : 'Left Panel';
+  const rightLabel = config ? getPanelLabel(config.right) : 'Right Panel';
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [searchTerm, setSearchTerm] = useState('');
   const [currentMatchIndex, setCurrentMatchIndex] = useState(0);
   const [compareMode, setCompareMode] = useState(defaultCompareMode);
   const [currentChangeIndex, setCurrentChangeIndex] = useState(0);
+  const [copiedSide, setCopiedSide] = useState<'left' | 'right' | null>(null);
   const bodyRef = useRef<HTMLDivElement>(null);
   const leftPanelRef = useRef<HTMLDivElement>(null);
   const rightPanelRef = useRef<HTMLDivElement>(null);
   const isScrolling = useRef(false);
+  const copyTimeoutRef = useRef<number | undefined>(undefined);
 
+  // Clear copy timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+    };
+  }, []);
 
   // Improved scroll sync with block alignment
   const handleScroll = useCallback((source: 'left' | 'right') => {
@@ -92,13 +107,16 @@ export function BodyTextModal({ isOpen, onClose, leftBodyMarkdown, rightBodyMark
     setCurrentMatchIndex(0);
   }, [searchTerm]);
 
-  // Compute changed block indices for diff navigation
-  const changedBlockIndices = useMemo(() => {
-    if (!leftBodyMarkdown || !rightBodyMarkdown) return [];
-    const { leftBlocks } = computeBlockDiff(leftBodyMarkdown, rightBodyMarkdown);
-    return leftBlocks
+  // Compute diff blocks once for both panels and navigation
+  const { leftBlocks, rightBlocks, changedBlockIndices } = useMemo(() => {
+    if (!leftBodyMarkdown || !rightBodyMarkdown) {
+      return { leftBlocks: [], rightBlocks: [], changedBlockIndices: [] };
+    }
+    const { leftBlocks, rightBlocks } = computeBlockDiff(leftBodyMarkdown, rightBodyMarkdown);
+    const changedBlockIndices = leftBlocks
       .map((block, i) => block.type !== 'unchanged' ? i : -1)
       .filter(i => i !== -1);
+    return { leftBlocks, rightBlocks, changedBlockIndices };
   }, [leftBodyMarkdown, rightBodyMarkdown]);
 
   const changeCount = changedBlockIndices.length;
@@ -138,6 +156,42 @@ export function BodyTextModal({ isOpen, onClose, leftBodyMarkdown, rightBodyMark
       setCurrentChangeIndex((prev) => (prev - 1 + changeCount) % changeCount);
     }
   }, [changeCount]);
+
+  const handleCopy = useCallback(async (content: string, side: 'left' | 'right') => {
+    try {
+      await navigator.clipboard.writeText(content);
+      setCopiedSide(side);
+      if (copyTimeoutRef.current) clearTimeout(copyTimeoutRef.current);
+      copyTimeoutRef.current = window.setTimeout(() => setCopiedSide(null), 1500);
+    } catch {
+      // Clipboard API failed - silently ignore
+    }
+  }, []);
+
+  const handleSave = useCallback((content: string, side: 'left' | 'right') => {
+    let domain = 'page';
+    if (url) {
+      try {
+        domain = new URL(url).hostname;
+      } catch {
+        domain = 'page';
+      }
+    }
+
+    const panelConfig = side === 'left' ? config?.left : config?.right;
+    const jsMode = panelConfig?.jsEnabled ? 'js' : 'non-js';
+    const timeout = panelConfig?.timeout ?? 10;
+
+    const filename = `${domain}-${jsMode}-${timeout}s.md`.toLowerCase();
+
+    const blob = new Blob([content], { type: 'text/markdown' });
+    const blobUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = blobUrl;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(blobUrl);
+  }, [url, config]);
 
   // Scroll to current change and highlight it
   useEffect(() => {
@@ -294,7 +348,25 @@ export function BodyTextModal({ isOpen, onClose, leftBodyMarkdown, rightBodyMark
             </div>
           )}
           <div className={styles.compareColumn}>
-            <div className={styles.columnHeader}>Left Panel</div>
+            <div className={styles.columnHeader}>
+              <span>{leftLabel}</span>
+              <div className={styles.columnActions}>
+                <button
+                  onClick={() => handleCopy(leftBodyMarkdown, 'left')}
+                  title="Copy to clipboard"
+                  aria-label="Copy left panel content"
+                >
+                  {copiedSide === 'left' ? <Icon name="check" size={14} /> : <Icon name="clipboard" size={14} />}
+                </button>
+                <button
+                  onClick={() => handleSave(leftBodyMarkdown, 'left')}
+                  title="Save as file"
+                  aria-label="Save left panel content"
+                >
+                  <Icon name="download" size={14} />
+                </button>
+              </div>
+            </div>
             <div
               ref={leftPanelRef}
               className={styles.columnContent}
@@ -304,8 +376,7 @@ export function BodyTextModal({ isOpen, onClose, leftBodyMarkdown, rightBodyMark
             >
               {leftBodyMarkdown && rightBodyMarkdown ? (
                 <DiffMarkdownContent
-                  leftContent={leftBodyMarkdown}
-                  rightContent={rightBodyMarkdown}
+                  blocks={leftBlocks}
                   searchTerm={searchTerm}
                   side="left"
                 />
@@ -320,7 +391,25 @@ export function BodyTextModal({ isOpen, onClose, leftBodyMarkdown, rightBodyMark
           </div>
           <div className={styles.compareDivider} aria-hidden="true" />
           <div className={styles.compareColumn}>
-            <div className={styles.columnHeader}>Right Panel</div>
+            <div className={styles.columnHeader}>
+              <span>{rightLabel}</span>
+              <div className={styles.columnActions}>
+                <button
+                  onClick={() => handleCopy(rightBodyMarkdown || '', 'right')}
+                  title="Copy to clipboard"
+                  aria-label="Copy right panel content"
+                >
+                  {copiedSide === 'right' ? <Icon name="check" size={14} /> : <Icon name="clipboard" size={14} />}
+                </button>
+                <button
+                  onClick={() => handleSave(rightBodyMarkdown || '', 'right')}
+                  title="Save as file"
+                  aria-label="Save right panel content"
+                >
+                  <Icon name="download" size={14} />
+                </button>
+              </div>
+            </div>
             <div
               ref={rightPanelRef}
               className={styles.columnContent}
@@ -330,8 +419,7 @@ export function BodyTextModal({ isOpen, onClose, leftBodyMarkdown, rightBodyMark
             >
               {leftBodyMarkdown && rightBodyMarkdown ? (
                 <DiffMarkdownContent
-                  leftContent={leftBodyMarkdown}
-                  rightContent={rightBodyMarkdown}
+                  blocks={rightBlocks}
                   searchTerm={searchTerm}
                   side="right"
                 />

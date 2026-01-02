@@ -13,7 +13,7 @@ interface ContentCardProps {
   onOpenWordDiffModal?: (scrollTo: 'added' | 'removed') => void;
 }
 
-export function ContentCard({ data, compareData, onOpenBodyTextModal, onOpenWordDiffModal }: ContentCardProps) {
+export function ContentCard({ data, compareData, onOpenBodyTextModal, onOpenWordDiffModal: _onOpenWordDiffModal }: ContentCardProps) {
   // Calculate total word count difference (not unique vocabulary)
   const wordCountDiff = useMemo(() => {
     if (!compareData) return null;

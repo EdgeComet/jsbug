@@ -21,7 +21,6 @@ npx vitest run src/components/Header/Header.test.tsx
 
 - React 19 with TypeScript
 - Vite 6 for build/dev
-- Tailwind CSS v4 (via @tailwindcss/vite plugin)
 - ESLint 9 with typescript-eslint for linting
 - Vitest with jsdom for testing, @testing-library/react
 - Recharts for data visualization
@@ -49,4 +48,18 @@ This is a page comparison tool that displays two side-by-side panels comparing U
 
 ### CSS
 - Uses CSS Modules (*.module.css files alongside components)
-- Tailwind CSS utilities available globally via `src/index.css`
+
+### Principles
+- DRY, do not duplicate the functionality that already exists. Move it into utilities layer, etc
+- think before adding new parameters to components
+- Single Responsibility: One component, one purpose 
+- Composition over Inheritance: Prefer composition patterns 
+- Props Interface Design: Clear, typed prop interfaces
+- Custom Hooks: Extract reusable logic 
+- Error Boundaries: Graceful error handling 
+- Accessibility: ARIA labels, semantic HTML
+
+### Performance Optimization
+- React.memo: Prevent unnecessary re-renders
+- useMemo/useCallback: Memoize expensive operations
+- Code Splitting: Lazy load components

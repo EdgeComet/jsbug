@@ -1,28 +1,20 @@
 import React from 'react';
-import { computeBlockDiff, DiffBlock } from '../../utils/blockDiff';
+import { DiffBlock } from '../../utils/blockDiff';
 import { MarkdownContent } from './MarkdownContent';
 import { InlineDiff } from './InlineDiff';
 import styles from './DiffMarkdownContent.module.css';
 
 interface DiffMarkdownContentProps {
-  leftContent: string;
-  rightContent: string;
+  blocks: DiffBlock[];
   searchTerm?: string;
   side: 'left' | 'right';
 }
 
-export const DiffMarkdownContent: React.FC<DiffMarkdownContentProps> = ({
-  leftContent,
-  rightContent,
+export const DiffMarkdownContent: React.FC<DiffMarkdownContentProps> = React.memo(({
+  blocks,
   searchTerm,
   side,
 }) => {
-  const { leftBlocks, rightBlocks } = React.useMemo(
-    () => computeBlockDiff(leftContent, rightContent),
-    [leftContent, rightContent]
-  );
-
-  const blocks = side === 'left' ? leftBlocks : rightBlocks;
 
   return (
     <div className={styles.diffContent}>
@@ -37,7 +29,7 @@ export const DiffMarkdownContent: React.FC<DiffMarkdownContentProps> = ({
       ))}
     </div>
   );
-};
+});
 
 const DiffBlockRenderer: React.FC<{
   block: DiffBlock;

@@ -213,6 +213,8 @@ export function Panel({
         rightBodyMarkdown={side === 'left' ? compareData?.content?.bodyMarkdown : content.bodyMarkdown}
         wordCount={content.bodyWords}
         defaultCompareMode={jsEnabled}
+        url={technical.finalUrl}
+        config={config}
       />
 
       <WordDiffModal
