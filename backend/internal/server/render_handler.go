@@ -408,6 +408,7 @@ func (h *RenderHandler) applyParseResult(data *types.RenderData, parseResult *pa
 
 	// New fields from extended extraction
 	data.BodyText = parseResult.BodyText
+	data.BodyTextTokensCount = parser.CountBodyTextTokens(parseResult.BodyText)
 	data.BodyMarkdown = parseResult.BodyMarkdown
 	data.TextHtmlRatio = parseResult.TextHtmlRatio
 	data.HrefLangs = parseResult.HrefLangs

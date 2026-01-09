@@ -77,6 +77,7 @@ function transformResponse(response: RenderData, jsEnabled: boolean): PanelData 
       h2: response.h2 ?? [],
       h3: response.h3 ?? [],
       bodyWords: response.word_count,
+      bodyTextTokensCount: response.body_text_tokens_count,
       textHtmlRatio: response.text_html_ratio,
       bodyText: response.body_text ?? '',
       bodyMarkdown: response.body_markdown ?? '',

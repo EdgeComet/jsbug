@@ -57,6 +57,7 @@ export interface ContentData {
   h2: string[];
   h3: string[];
   bodyWords: number;
+  bodyTextTokensCount: number;
   textHtmlRatio: number;
   bodyText: string;
   bodyMarkdown: string;

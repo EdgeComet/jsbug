@@ -109,6 +109,7 @@ export const mockLeftPanel = {
     ],
     h3: [],
     bodyWords: 2647,
+    bodyTextTokensCount: 1985,
     textHtmlRatio: 0.42,
     bodyText: `JavaScript Rendering Comparison Tool
 
@@ -299,6 +300,7 @@ export const mockRightPanel = {
     ],
     h3: [],
     bodyWords: 847,
+    bodyTextTokensCount: 635,
     textHtmlRatio: 0.38,
     bodyText: `JavaScript Rendering Comparison Tool
 

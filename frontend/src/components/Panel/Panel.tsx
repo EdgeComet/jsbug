@@ -8,6 +8,7 @@ import { IndexationCard } from './IndexationCard';
 import { LinksCard } from './LinksCard';
 import { ImagesCard } from './ImagesCard';
 import { ContentCard } from './ContentCard';
+import { AICard } from './AICard';
 import { NoJSInfo } from './NoJSInfo';
 import { ScreenshotCard } from '../ScreenshotCard';
 import { ResultTabs } from '../ResultTabs/ResultTabs';
@@ -165,6 +166,7 @@ export function Panel({
             <>
               <IndexationCard data={indexation} compareData={jsEnabled ? compareData?.indexation : undefined} robotsAllowed={robotsAllowed} robotsLoading={robotsLoading} currentUrl={technical.finalUrl} />
               <ContentCard data={content} compareData={jsEnabled ? compareData?.content : undefined} onOpenBodyTextModal={() => setBodyTextModalOpen(true)} onOpenWordDiffModal={(scrollTo) => { setWordDiffScrollTo(scrollTo); setWordDiffModalOpen(true); }} />
+              <AICard tokenCount={content.bodyTextTokensCount} compareTokenCount={jsEnabled ? compareData?.content?.bodyTextTokensCount : undefined} />
               <LinksCard data={links} compareData={jsEnabled ? compareData?.links : undefined} onOpenModal={handleOpenLinksModal} onOpenDiffModal={handleOpenLinksDiffModal} />
               <ImagesCard data={images} compareData={jsEnabled ? compareData?.images : undefined} onOpenModal={handleOpenImagesModal} onOpenDiffModal={handleOpenImagesDiffModal} />
             </>

@@ -86,8 +86,9 @@ type RenderData struct {
 	H1              []string          `json:"h1,omitempty"`
 	H2              []string          `json:"h2,omitempty"`
 	H3              []string          `json:"h3,omitempty"`
-	WordCount       int               `json:"word_count"`
-	OpenGraph       map[string]string `json:"open_graph,omitempty"`
+	WordCount           int               `json:"word_count"`
+	BodyTextTokensCount int               `json:"body_text_tokens_count"`
+	OpenGraph           map[string]string `json:"open_graph,omitempty"`
 	StructuredData  []json.RawMessage `json:"structured_data,omitempty"`
 
 	// Body text and ratio

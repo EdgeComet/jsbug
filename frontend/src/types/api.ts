@@ -57,6 +57,7 @@ export interface RenderData {
   h2?: string[] | null;
   h3?: string[] | null;
   word_count: number;
+  body_text_tokens_count: number;
   body_text?: string | null;
   body_markdown?: string | null;
   text_html_ratio: number;
