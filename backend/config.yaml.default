@@ -15,6 +15,7 @@ chrome:
 logging:
   level: "info"
   format: "console"
+  # file_path: "/var/log/jsbug/app.log"  # Optional: enable file logging (disabled by default)
 
 captcha:
   enabled: false          # Enable/disable captcha verification

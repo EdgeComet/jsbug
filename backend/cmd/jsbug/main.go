@@ -38,12 +38,16 @@ func main() {
 	}
 
 	// Initialize logger
-	log, err := logger.New(cfg.Logging.Level, cfg.Logging.Format)
+	log, logCleanup, err := logger.New(cfg.Logging.Level, cfg.Logging.Format, cfg.Logging.FilePath)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to initialize logger: %v\n", err)
 		os.Exit(1)
 	}
-	defer log.Sync()
+	defer logCleanup()
+
+	if cfg.Logging.FilePath != "" {
+		log.Info("File logging enabled", zap.String("path", cfg.Logging.FilePath))
+	}
 
 	// Initialize Chrome pool
 	pool, err := chrome.NewChromePool(chrome.InstanceConfig{

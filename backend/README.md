@@ -39,31 +39,36 @@ Create a `config.yaml` file:
 server:
   host: "0.0.0.0"
   port: 9301
-  read_timeout: 30
-  write_timeout: 60
+  timeout: 30              # Request timeout in seconds
   cors_origins:
     - "*"
 
 chrome:
-  executable_path: ""  # Leave empty for auto-detect
-  headless: true
-  disable_gpu: true
-  no_sandbox: false    # Set to true in Docker
-  viewport_width: 1920
-  viewport_height: 1080
+  pool_size: 4             # Number of Chrome instances (1-16)
+  warmup_url: "https://example.com/"  # URL to load on instance start
+  restart_after_count: 50  # Restart instance after N renders (0 = disabled)
+  restart_after_time: 30m  # Restart instance after duration (0 = disabled)
 
 logging:
-  level: "info"
-  format: "json"
+  level: "info"            # debug, info, warn, error
+  format: "console"        # json or console
+  file_path: ""            # Optional: path to log file (empty = console only)
+
+captcha:
+  enabled: false           # Enable Cloudflare Turnstile verification
+  secret_key: ""           # Turnstile secret key (required if enabled)
 ```
 
 ### Environment Variables
 
 Configuration can be overridden with environment variables:
 
-- `JSBUG_SERVER_PORT` - Server port
-- `JSBUG_CHROME_HEADLESS` - Enable headless mode
-- `JSBUG_LOGGING_LEVEL` - Log level (debug, info, warn, error)
+- `JSBUG_PORT` - Server port
+- `JSBUG_POOL_SIZE` - Chrome pool size
+- `JSBUG_LOG_LEVEL` - Log level (debug, info, warn, error)
+- `JSBUG_CORS_ORIGINS` - CORS origins (comma-separated)
+- `JSBUG_CAPTCHA_ENABLED` - Enable captcha (true/false)
+- `JSBUG_CAPTCHA_SECRET_KEY` - Captcha secret key
 
 ## Usage
 

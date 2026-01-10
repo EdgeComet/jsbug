@@ -7,6 +7,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/user/jsbug/internal/logger"
 	"gopkg.in/yaml.v3"
 )
 
@@ -40,8 +41,9 @@ type ChromeConfig struct {
 
 // LoggingConfig contains logging settings
 type LoggingConfig struct {
-	Level  string `yaml:"level"`
-	Format string `yaml:"format"`
+	Level    string `yaml:"level"`
+	Format   string `yaml:"format"`
+	FilePath string `yaml:"file_path"`
 }
 
 // CaptchaConfig contains Cloudflare Turnstile captcha settings
@@ -50,27 +52,13 @@ type CaptchaConfig struct {
 	SecretKey string `yaml:"secret_key"`
 }
 
-// Valid log levels
-const (
-	LogLevelDebug = "debug"
-	LogLevelInfo  = "info"
-	LogLevelWarn  = "warn"
-	LogLevelError = "error"
-)
-
-// Valid log formats
-const (
-	LogFormatJSON    = "json"
-	LogFormatConsole = "console"
-)
-
 // Default values
 const (
 	defaultHost      = "0.0.0.0"
 	defaultPort      = 9301
 	defaultTimeout   = 30
-	defaultLogLevel  = LogLevelInfo
-	defaultLogFormat      = LogFormatJSON
+	defaultLogLevel  = logger.LevelInfo
+	defaultLogFormat = logger.FormatJSON
 
 	// Pool defaults
 	defaultPoolSize          = 4
@@ -90,15 +78,15 @@ const (
 )
 
 var validLogLevels = map[string]bool{
-	LogLevelDebug: true,
-	LogLevelInfo:  true,
-	LogLevelWarn:  true,
-	LogLevelError: true,
+	logger.LevelDebug: true,
+	logger.LevelInfo:  true,
+	logger.LevelWarn:  true,
+	logger.LevelError: true,
 }
 
 var validLogFormats = map[string]bool{
-	LogFormatJSON:    true,
-	LogFormatConsole: true,
+	logger.FormatJSON:    true,
+	logger.FormatConsole: true,
 }
 
 // Load reads configuration from a YAML file and applies environment overrides

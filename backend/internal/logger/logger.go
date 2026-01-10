@@ -2,6 +2,8 @@ package logger
 
 import (
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -37,32 +39,87 @@ func ParseLevel(level string) (zapcore.Level, error) {
 	}
 }
 
-// New creates a new zap logger with the specified level and format
-func New(level string, format string) (*zap.Logger, error) {
+// ensureLogDirectory creates the parent directory for the log file if it doesn't exist
+func ensureLogDirectory(filePath string) error {
+	dir := filepath.Dir(filePath)
+	if dir == "" || dir == "." {
+		return nil
+	}
+	if err := os.MkdirAll(dir, 0755); err != nil {
+		return fmt.Errorf("failed to create log directory %s: %w", dir, err)
+	}
+	return nil
+}
+
+// New creates a new zap logger with the specified level, format, and optional file path.
+// Returns the logger and a cleanup function that should be called on shutdown.
+// The cleanup function syncs the logger and closes any open file handles.
+func New(level string, format string, filePath string) (*zap.Logger, func(), error) {
 	zapLevel, err := ParseLevel(level)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
-	var config zap.Config
-
+	// Create console encoder based on format
+	var consoleEncoder zapcore.Encoder
 	switch format {
 	case FormatJSON:
-		config = zap.NewProductionConfig()
+		consoleEncoder = zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig())
 	case FormatConsole:
-		config = zap.NewDevelopmentConfig()
-		config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+		consoleConfig := zap.NewDevelopmentEncoderConfig()
+		consoleConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+		consoleEncoder = zapcore.NewConsoleEncoder(consoleConfig)
 	default:
-		return nil, fmt.Errorf("invalid log format: %s", format)
+		return nil, nil, fmt.Errorf("invalid log format: %s", format)
 	}
 
-	config.Level = zap.NewAtomicLevelAt(zapLevel)
-	config.DisableCaller = true
+	// Console core (always enabled)
+	consoleWriter := zapcore.Lock(os.Stdout)
+	consoleCore := zapcore.NewCore(consoleEncoder, consoleWriter, zapLevel)
 
-	logger, err := config.Build()
-	if err != nil {
-		return nil, fmt.Errorf("failed to build logger: %w", err)
+	// Track file for cleanup
+	var logFile *os.File
+
+	var core zapcore.Core
+	if filePath != "" {
+		if err := ensureLogDirectory(filePath); err != nil {
+			return nil, nil, err
+		}
+
+		logFile, err = os.OpenFile(filePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			return nil, nil, fmt.Errorf("failed to open log file %s: %w", filePath, err)
+		}
+
+		// File encoder: same format but without ANSI colors
+		var fileEncoder zapcore.Encoder
+		switch format {
+		case FormatJSON:
+			fileEncoder = zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig())
+		case FormatConsole:
+			fileConfig := zap.NewDevelopmentEncoderConfig()
+			fileConfig.EncodeLevel = zapcore.CapitalLevelEncoder // No colors for file
+			fileEncoder = zapcore.NewConsoleEncoder(fileConfig)
+		}
+
+		fileWriter := zapcore.AddSync(logFile)
+		fileCore := zapcore.NewCore(fileEncoder, fileWriter, zapLevel)
+
+		// Combine console and file cores
+		core = zapcore.NewTee(consoleCore, fileCore)
+	} else {
+		core = consoleCore
 	}
 
-	return logger, nil
+	logger := zap.New(core)
+
+	// Cleanup function: sync logger and close file
+	cleanup := func() {
+		logger.Sync()
+		if logFile != nil {
+			logFile.Close()
+		}
+	}
+
+	return logger, cleanup, nil
 }
