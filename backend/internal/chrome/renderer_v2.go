@@ -26,7 +26,6 @@ import (
 
 const (
 	maxConsoleErrorsSize = 5120 // Maximum total size of console error messages in bytes (5KB)
-	headerEdgeRender     = "X-Edge-Render"
 )
 
 // RenderOptions contains options for rendering a page
@@ -373,11 +372,6 @@ func (r *RendererV2) buildTasks(opts RenderOptions, state *renderState, collecto
 				return fetch.Enable().WithPatterns(patterns).Do(ctx)
 			}
 			return nil
-		}),
-
-		// Add X-Edge-Render header to prevent nginx loop
-		network.SetExtraHTTPHeaders(network.Headers{
-			headerEdgeRender: r.serviceID,
 		}),
 
 		network.ClearBrowserCookies(),
