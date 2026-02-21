@@ -14,10 +14,10 @@ import (
 
 func TestNewFetcher(t *testing.T) {
 	logger := zap.NewNop()
-	f := NewFetcher(logger)
+	f := NewUnsafeFetcher(logger)
 
 	if f == nil {
-		t.Fatal("NewFetcher() returned nil")
+		t.Fatal("NewUnsafeFetcher() returned nil")
 	}
 	if f.client == nil {
 		t.Error("client is nil")
@@ -33,7 +33,7 @@ func TestFetcher_Fetch_Success(t *testing.T) {
 	defer server.Close()
 
 	logger := zap.NewNop()
-	f := NewFetcher(logger)
+	f := NewUnsafeFetcher(logger)
 
 	result, err := f.Fetch(context.Background(), FetchOptions{
 		URL:     server.URL,
@@ -79,7 +79,7 @@ func TestFetcher_Fetch_Redirect(t *testing.T) {
 	defer server.Close()
 
 	logger := zap.NewNop()
-	f := NewFetcher(logger)
+	f := NewUnsafeFetcher(logger)
 
 	result, err := f.Fetch(context.Background(), FetchOptions{
 		URL:             server.URL + "/redirect",
@@ -113,7 +113,7 @@ func TestFetcher_Fetch_Timeout(t *testing.T) {
 	defer server.Close()
 
 	logger := zap.NewNop()
-	f := NewFetcher(logger)
+	f := NewUnsafeFetcher(logger)
 
 	_, err := f.Fetch(context.Background(), FetchOptions{
 		URL:     server.URL,
@@ -127,7 +127,7 @@ func TestFetcher_Fetch_Timeout(t *testing.T) {
 
 func TestFetcher_Fetch_NetworkError(t *testing.T) {
 	logger := zap.NewNop()
-	f := NewFetcher(logger)
+	f := NewUnsafeFetcher(logger)
 
 	_, err := f.Fetch(context.Background(), FetchOptions{
 		URL:     "http://localhost:99999/invalid",
@@ -166,7 +166,7 @@ func TestFetcher_Fetch_StatusCodes(t *testing.T) {
 			defer server.Close()
 
 			logger := zap.NewNop()
-			f := NewFetcher(logger)
+			f := NewUnsafeFetcher(logger)
 
 			result, err := f.Fetch(context.Background(), FetchOptions{
 				URL:     server.URL,
@@ -193,7 +193,7 @@ func TestFetcher_Fetch_UserAgent(t *testing.T) {
 	defer server.Close()
 
 	logger := zap.NewNop()
-	f := NewFetcher(logger)
+	f := NewUnsafeFetcher(logger)
 
 	customUA := "CustomBot/1.0"
 	_, err := f.Fetch(context.Background(), FetchOptions{
@@ -221,7 +221,7 @@ func TestFetcher_Fetch_Headers(t *testing.T) {
 	defer server.Close()
 
 	logger := zap.NewNop()
-	f := NewFetcher(logger)
+	f := NewUnsafeFetcher(logger)
 
 	result, err := f.Fetch(context.Background(), FetchOptions{
 		URL:     server.URL,
@@ -253,7 +253,7 @@ func TestFetcher_Fetch_ContextCancellation(t *testing.T) {
 	defer server.Close()
 
 	logger := zap.NewNop()
-	f := NewFetcher(logger)
+	f := NewUnsafeFetcher(logger)
 
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel() // Cancel immediately
@@ -327,7 +327,7 @@ func TestFetcher_Fetch_NoFollowRedirects(t *testing.T) {
 	defer server.Close()
 
 	logger := zap.NewNop()
-	f := NewFetcher(logger)
+	f := NewUnsafeFetcher(logger)
 
 	result, err := f.Fetch(context.Background(), FetchOptions{
 		URL:             server.URL + "/redirect",
@@ -367,7 +367,7 @@ func TestFetcher_TooManyRedirects(t *testing.T) {
 	defer server.Close()
 
 	logger := zap.NewNop()
-	f := NewFetcher(logger)
+	f := NewUnsafeFetcher(logger)
 
 	_, err := f.Fetch(context.Background(), FetchOptions{
 		URL:             server.URL + "/redirect",

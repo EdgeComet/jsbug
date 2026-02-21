@@ -17,10 +17,10 @@ const TokenDuration = 24 * time.Hour
 
 // Error types for token validation
 var (
-	ErrTokenRequired        = errors.New("session token required")
-	ErrTokenInvalid         = errors.New("session token invalid")
-	ErrTokenExpired         = errors.New("session token expired")
-	ErrFingerprintMismatch  = errors.New("fingerprint mismatch")
+	ErrTokenRequired       = errors.New("session token required")
+	ErrTokenInvalid        = errors.New("session token invalid")
+	ErrTokenExpired        = errors.New("session token expired")
+	ErrFingerprintMismatch = errors.New("fingerprint mismatch")
 )
 
 // Claims represents the JWT claims for a session token

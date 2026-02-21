@@ -9,6 +9,8 @@ import (
 	"time"
 
 	"go.uber.org/zap"
+
+	"github.com/user/jsbug/internal/security"
 )
 
 // Default timeouts
@@ -38,14 +40,20 @@ type FetchResult struct {
 
 // Fetcher performs HTTP requests for non-JS rendering
 type Fetcher struct {
-	client *http.Client
-	logger *zap.Logger
+	client    *http.Client
+	transport *http.Transport
+	logger    *zap.Logger
 }
 
-// NewFetcher creates a new Fetcher
+// NewFetcher creates a new Fetcher with SSRF-safe transport
 func NewFetcher(logger *zap.Logger) *Fetcher {
+	transport := &http.Transport{
+		DialContext: security.SSRFSafeDialContext,
+	}
+
 	client := &http.Client{
-		Timeout: defaultRequestTimeout,
+		Timeout:   defaultRequestTimeout,
+		Transport: transport,
 		CheckRedirect: func(req *http.Request, via []*http.Request) error {
 			if len(via) >= 10 {
 				return fmt.Errorf("too many redirects")
@@ -55,8 +63,31 @@ func NewFetcher(logger *zap.Logger) *Fetcher {
 	}
 
 	return &Fetcher{
-		client: client,
-		logger: logger,
+		client:    client,
+		transport: transport,
+		logger:    logger,
+	}
+}
+
+// NewUnsafeFetcher creates a Fetcher without SSRF protection. Use only in tests.
+func NewUnsafeFetcher(logger *zap.Logger) *Fetcher {
+	transport := &http.Transport{}
+
+	client := &http.Client{
+		Timeout:   defaultRequestTimeout,
+		Transport: transport,
+		CheckRedirect: func(req *http.Request, via []*http.Request) error {
+			if len(via) >= 10 {
+				return fmt.Errorf("too many redirects")
+			}
+			return nil
+		},
+	}
+
+	return &Fetcher{
+		client:    client,
+		transport: transport,
+		logger:    logger,
 	}
 }
 
@@ -106,6 +137,7 @@ func (f *Fetcher) Fetch(ctx context.Context, opts FetchOptions) (*FetchResult, e
 
 	client := &http.Client{
 		Timeout:       timeout,
+		Transport:     f.transport,
 		CheckRedirect: checkRedirect,
 	}
 

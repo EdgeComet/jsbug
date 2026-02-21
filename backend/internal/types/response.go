@@ -7,16 +7,16 @@ import (
 
 // Error codes
 const (
-	ErrInvalidURL        = "INVALID_URL"
-	ErrInvalidTimeout    = "INVALID_TIMEOUT"
-	ErrInvalidWaitEvent  = "INVALID_WAIT_EVENT"
-	ErrRenderTimeout     = "RENDER_TIMEOUT"
-	ErrRenderFailed      = "RENDER_FAILED"
-	ErrFetchFailed       = "FETCH_FAILED"
-	ErrChromeUnavailable = "CHROME_UNAVAILABLE"
-	ErrDomainNotFound    = "DOMAIN_NOT_FOUND"
-	ErrPoolExhausted     = "POOL_EXHAUSTED"
-	ErrPoolShuttingDown  = "POOL_SHUTTING_DOWN"
+	ErrInvalidURL           = "INVALID_URL"
+	ErrInvalidTimeout       = "INVALID_TIMEOUT"
+	ErrInvalidWaitEvent     = "INVALID_WAIT_EVENT"
+	ErrRenderTimeout        = "RENDER_TIMEOUT"
+	ErrRenderFailed         = "RENDER_FAILED"
+	ErrFetchFailed          = "FETCH_FAILED"
+	ErrChromeUnavailable    = "CHROME_UNAVAILABLE"
+	ErrDomainNotFound       = "DOMAIN_NOT_FOUND"
+	ErrPoolExhausted        = "POOL_EXHAUSTED"
+	ErrPoolShuttingDown     = "POOL_SHUTTING_DOWN"
 	ErrSessionTokenRequired = "SESSION_TOKEN_REQUIRED"
 	ErrSessionTokenInvalid  = "SESSION_TOKEN_INVALID"
 	ErrSessionTokenExpired  = "SESSION_TOKEN_EXPIRED"
@@ -24,6 +24,7 @@ const (
 	ErrAPIKeyInvalid        = "API_KEY_INVALID"
 	ErrMethodNotAllowed     = "METHOD_NOT_ALLOWED"
 	ErrInvalidRequestBody   = "INVALID_REQUEST_BODY"
+	ErrSSRFBlocked          = "SSRF_BLOCKED"
 )
 
 // ErrorCodeToHTTPStatus maps an error code to the appropriate HTTP status code.
@@ -33,7 +34,7 @@ func ErrorCodeToHTTPStatus(code string) int {
 		return http.StatusBadRequest
 	case ErrAPIKeyRequired:
 		return http.StatusUnauthorized
-	case ErrAPIKeyInvalid, ErrSessionTokenRequired, ErrSessionTokenInvalid, ErrSessionTokenExpired:
+	case ErrAPIKeyInvalid, ErrSessionTokenRequired, ErrSessionTokenInvalid, ErrSessionTokenExpired, ErrSSRFBlocked:
 		return http.StatusForbidden
 	case ErrMethodNotAllowed:
 		return http.StatusMethodNotAllowed
@@ -108,15 +109,15 @@ type RenderData struct {
 	MetaFollow    bool `json:"meta_follow"`
 
 	// Content information
-	Title           string            `json:"title"`
-	MetaDescription string            `json:"meta_description,omitempty"`
-	H1              []string          `json:"h1,omitempty"`
-	H2              []string          `json:"h2,omitempty"`
-	H3              []string          `json:"h3,omitempty"`
+	Title               string            `json:"title"`
+	MetaDescription     string            `json:"meta_description,omitempty"`
+	H1                  []string          `json:"h1,omitempty"`
+	H2                  []string          `json:"h2,omitempty"`
+	H3                  []string          `json:"h3,omitempty"`
 	WordCount           int               `json:"word_count"`
 	BodyTextTokensCount int               `json:"body_text_tokens_count"`
 	OpenGraph           map[string]string `json:"open_graph,omitempty"`
-	StructuredData  []json.RawMessage `json:"structured_data,omitempty"`
+	StructuredData      []json.RawMessage `json:"structured_data,omitempty"`
 
 	// Body text and ratio
 	BodyText      string  `json:"body_text,omitempty"`

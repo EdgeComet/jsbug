@@ -59,18 +59,18 @@ const (
 
 // RenderRequest represents an API request to render a page
 type RenderRequest struct {
-	RequestID       string   `json:"request_id"`
-	URL             string   `json:"url"`
-	JSEnabled       bool     `json:"js_enabled"`
-	FollowRedirects *bool    `json:"follow_redirects,omitempty"` // default true
-	UserAgent       string   `json:"user_agent,omitempty"`
-	Timeout         int      `json:"timeout,omitempty"`
-	WaitEvent       string   `json:"wait_event,omitempty"`
-	BlockAnalytics  bool     `json:"block_analytics,omitempty"`
-	BlockAds        bool     `json:"block_ads,omitempty"`
-	BlockSocial     bool     `json:"block_social,omitempty"`
+	RequestID         string   `json:"request_id"`
+	URL               string   `json:"url"`
+	JSEnabled         bool     `json:"js_enabled"`
+	FollowRedirects   *bool    `json:"follow_redirects,omitempty"` // default true
+	UserAgent         string   `json:"user_agent,omitempty"`
+	Timeout           int      `json:"timeout,omitempty"`
+	WaitEvent         string   `json:"wait_event,omitempty"`
+	BlockAnalytics    bool     `json:"block_analytics,omitempty"`
+	BlockAds          bool     `json:"block_ads,omitempty"`
+	BlockSocial       bool     `json:"block_social,omitempty"`
 	BlockedTypes      []string `json:"blocked_types,omitempty"`
-	CaptureScreenshot bool     `json:"-"`                       // Internal only, not JSON-exposed
+	CaptureScreenshot bool     `json:"-"` // Internal only, not JSON-exposed
 	SessionToken      string   `json:"session_token,omitempty"`
 }
 

@@ -70,7 +70,8 @@ func (h *ExtRenderHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	decoder := json.NewDecoder(r.Body)
 	decoder.DisallowUnknownFields()
 	if err := decoder.Decode(&extReq); err != nil {
-		h.writeError(w, http.StatusBadRequest, types.ErrInvalidRequestBody, "Invalid request body: "+err.Error())
+		h.logger.Warn("Invalid request body", zap.Error(err))
+		h.writeError(w, http.StatusBadRequest, types.ErrInvalidRequestBody, "Invalid request body")
 		return
 	}
 

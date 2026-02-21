@@ -35,6 +35,7 @@ func (h *RobotsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Parse request body
+	r.Body = http.MaxBytesReader(w, r.Body, 60<<10) // 60 KB
 	var req types.RobotsRequest
 	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
 		h.writeError(w, http.StatusBadRequest, types.ErrInvalidURL, "Invalid JSON request body")
@@ -46,7 +47,8 @@ func (h *RobotsHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		if validationErr, ok := err.(*types.ValidationError); ok {
 			h.writeError(w, http.StatusBadRequest, validationErr.Code, validationErr.Message)
 		} else {
-			h.writeError(w, http.StatusBadRequest, types.ErrInvalidURL, err.Error())
+			h.logger.Warn("Unexpected validation error", zap.Error(err))
+			h.writeError(w, http.StatusBadRequest, types.ErrInvalidURL, "Invalid request")
 		}
 		return
 	}

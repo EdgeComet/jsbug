@@ -882,19 +882,19 @@ func TestTruncateMarkdownAtBlock(t *testing.T) {
 		{
 			name:     "truncate at block boundary",
 			markdown: "First paragraph\n\nSecond paragraph\n\nThird paragraph", // 51 bytes
-			maxBytes: 45, // 51 > 45, targetLen = 45 - 25 = 20, find \n\n at position 15
+			maxBytes: 45,                                                       // 51 > 45, targetLen = 45 - 25 = 20, find \n\n at position 15
 			expected: "First paragraph\n\n[Content truncated...]",
 		},
 		{
 			name:     "truncate without block boundary",
 			markdown: "Single very long paragraph without any block breaks here", // 56 bytes, no \n\n
-			maxBytes: 50, // 56 > 50, targetLen = 50 - 25 = 25, UTF-8 truncate
+			maxBytes: 50,                                                         // 56 > 50, targetLen = 50 - 25 = 25, UTF-8 truncate
 			expected: "Single very long paragraph\n\n[Content truncated...]",
 		},
 		{
 			name:     "maxBytes smaller than indicator",
 			markdown: "This text is longer than the max bytes value", // 44 bytes
-			maxBytes: 10, // 44 > 10, targetLen = 10 - 25 = -15, returns just indicator
+			maxBytes: 10,                                             // 44 > 10, targetLen = 10 - 25 = -15, returns just indicator
 			expected: "\n\n[Content truncated...]",
 		},
 		{
@@ -906,13 +906,13 @@ func TestTruncateMarkdownAtBlock(t *testing.T) {
 		{
 			name:     "truncate at second block boundary",
 			markdown: "Para one\n\nPara two\n\nPara three long text here extra", // 51 bytes
-			maxBytes: 50, // 51 > 50, targetLen = 50 - 25 = 25, find last \n\n at position 18
+			maxBytes: 50,                                                        // 51 > 50, targetLen = 50 - 25 = 25, find last \n\n at position 18
 			expected: "Para one\n\nPara two\n\n[Content truncated...]",
 		},
 		{
 			name:     "just over limit truncates with no block boundary",
 			markdown: "Short text here more text", // 25 bytes
-			maxBytes: 28,                           // 25 <= 28, no truncation needed
+			maxBytes: 28,                          // 25 <= 28, no truncation needed
 			expected: "Short text here more text",
 		},
 		{

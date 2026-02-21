@@ -16,6 +16,7 @@ import (
 	"github.com/user/jsbug/internal/fetcher"
 	"github.com/user/jsbug/internal/parser"
 	"github.com/user/jsbug/internal/screenshot"
+	"github.com/user/jsbug/internal/security"
 	"github.com/user/jsbug/internal/session"
 	"github.com/user/jsbug/internal/types"
 )
@@ -73,8 +74,11 @@ func (h *RenderHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// Parse request body
+	r.Body = http.MaxBytesReader(w, r.Body, 1<<20) // 1 MB
 	var req types.RenderRequest
-	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+	decoder := json.NewDecoder(r.Body)
+	decoder.DisallowUnknownFields()
+	if err := decoder.Decode(&req); err != nil {
 		h.writeError(w, http.StatusBadRequest, types.ErrInvalidURL, "Invalid JSON request body")
 		return
 	}
@@ -160,6 +164,12 @@ func (h *RenderHandler) validateRequest(req *types.RenderRequest) *types.RenderE
 		return &types.RenderError{Code: types.ErrInvalidURL, Message: "URL must have a host"}
 	}
 
+	// SSRF protection: block private/internal IP ranges
+	if err := security.ValidateURL(req.URL); err != nil {
+		h.logger.Warn("SSRF blocked", zap.String("url", req.URL), zap.Error(err))
+		return &types.RenderError{Code: types.ErrSSRFBlocked, Message: "URL not allowed"}
+	}
+
 	// Validate timeout
 	if !req.ValidateTimeout() {
 		return &types.RenderError{
@@ -219,12 +229,13 @@ func (h *RenderHandler) handleJSRender(ctx context.Context, req *types.RenderReq
 			}
 		}
 		// Other error (e.g., restart failed)
-		h.publishError(requestID, types.ErrChromeUnavailable, err.Error())
+		h.logger.Error("Chrome instance error", zap.Error(err))
+		h.publishError(requestID, types.ErrChromeUnavailable, "Chrome unavailable")
 		return &types.RenderResponse{
 			Success: false,
 			Error: &types.RenderError{
 				Code:    types.ErrChromeUnavailable,
-				Message: err.Error(),
+				Message: "Chrome unavailable",
 			},
 		}
 	}
@@ -464,11 +475,12 @@ func (h *RenderHandler) handleRenderError(err error) *types.RenderResponse {
 		}
 	}
 
+	h.logger.Error("Render failed", zap.Error(err))
 	return &types.RenderResponse{
 		Success: false,
 		Error: &types.RenderError{
 			Code:    types.ErrRenderFailed,
-			Message: "Render failed: " + errMsg,
+			Message: "Render failed",
 		},
 	}
 }
@@ -498,11 +510,12 @@ func (h *RenderHandler) handleFetchError(err error) *types.RenderResponse {
 		}
 	}
 
+	h.logger.Error("Fetch failed", zap.Error(err))
 	return &types.RenderResponse{
 		Success: false,
 		Error: &types.RenderError{
 			Code:    types.ErrFetchFailed,
-			Message: "Fetch failed: " + errMsg,
+			Message: "Fetch failed",
 		},
 	}
 }
