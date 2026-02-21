@@ -117,6 +117,8 @@ func main() {
 	if cfg.API.Enabled {
 		extHandler := server.NewExtRenderHandler(renderHandler, cfg, log)
 		srv.SetExtRenderHandler(extHandler)
+		compareHandler := server.NewExtCompareHandler(renderHandler, cfg, log)
+		srv.SetExtCompareHandler(compareHandler)
 		log.Info("External API enabled", zap.Int("api_keys", len(cfg.API.Keys)))
 	}
 

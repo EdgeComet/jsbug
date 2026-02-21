@@ -79,7 +79,7 @@ func (h *ExtRenderHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	req.ApplyDefaults()
 
 	if renderErr := h.renderHandler.validateRequest(req); renderErr != nil {
-		h.writeError(w, http.StatusBadRequest, renderErr.Code, renderErr.Message)
+		h.writeError(w, types.ErrorCodeToHTTPStatus(renderErr.Code), renderErr.Code, renderErr.Message)
 		return
 	}
 
@@ -101,10 +101,10 @@ func (h *ExtRenderHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	extData := h.buildExtResponse(response.Data, &extReq)
+	extData := buildExtResponse(response.Data, &extReq)
 
 	if extReq.MaxContentLength > 0 {
-		h.truncateContent(extData, extReq.MaxContentLength)
+		truncateContent(extData, extReq.MaxContentLength)
 	}
 
 	if extData.BodyText != nil {
@@ -121,7 +121,7 @@ func (h *ExtRenderHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.logRequest(extReq, apiKey, time.Since(startTime).Seconds(), http.StatusOK)
 }
 
-func (h *ExtRenderHandler) buildExtResponse(data *types.RenderData, extReq *types.ExtRenderRequest) *types.ExtRenderData {
+func buildExtResponse(data *types.RenderData, extReq *types.ExtRenderRequest) *types.ExtRenderData {
 	ext := &types.ExtRenderData{
 		StatusCode:      data.StatusCode,
 		FinalURL:        data.FinalURL,
@@ -213,7 +213,7 @@ func (h *ExtRenderHandler) buildExtResponse(data *types.RenderData, extReq *type
 	return ext
 }
 
-func (h *ExtRenderHandler) truncateContent(data *types.ExtRenderData, maxLen int) {
+func truncateContent(data *types.ExtRenderData, maxLen int) {
 	if data.HTML != nil {
 		*data.HTML = truncateAtWordBoundary(*data.HTML, maxLen)
 	}

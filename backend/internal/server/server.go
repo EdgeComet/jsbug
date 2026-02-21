@@ -84,6 +84,11 @@ func (s *Server) SetExtRenderHandler(handler *ExtRenderHandler) {
 	s.mux.Handle("/api/ext/render", handler)
 }
 
+// SetExtCompareHandler sets the external API compare handler
+func (s *Server) SetExtCompareHandler(handler *ExtCompareHandler) {
+	s.mux.Handle("/api/ext/compare", handler)
+}
+
 // SetScreenshotHandler sets the screenshot handler for serving screenshots
 func (s *Server) SetScreenshotHandler(handler *ScreenshotHandler) {
 	// Use a prefix pattern to match /api/screenshot/{id}
