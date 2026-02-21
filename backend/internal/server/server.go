@@ -79,6 +79,11 @@ func (s *Server) SetAuthHandler(handler *AuthHandler) {
 	s.mux.Handle("/api/auth/captcha", handler)
 }
 
+// SetExtRenderHandler sets the external API render handler
+func (s *Server) SetExtRenderHandler(handler *ExtRenderHandler) {
+	s.mux.Handle("/api/ext/render", handler)
+}
+
 // SetScreenshotHandler sets the screenshot handler for serving screenshots
 func (s *Server) SetScreenshotHandler(handler *ScreenshotHandler) {
 	// Use a prefix pattern to match /api/screenshot/{id}
@@ -112,7 +117,7 @@ func (s *Server) corsMiddleware(next http.Handler) http.Handler {
 		if s.isOriginAllowed(origin) {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 			w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
-			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-Request-ID")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, X-Request-ID, X-API-Key")
 		}
 
 		if r.Method == http.MethodOptions {

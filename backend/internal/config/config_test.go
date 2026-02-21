@@ -3,6 +3,7 @@ package config
 import (
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 	"time"
 )
@@ -392,6 +393,204 @@ func TestChromeTimeout(t *testing.T) {
 	cfg.Server.Timeout = 60
 	if got := cfg.ChromeTimeout(); got != 55 {
 		t.Errorf("ChromeTimeout() = %d, want %d", got, 55)
+	}
+}
+
+// API configuration tests
+
+func TestLoad_APIDisabledByDefault(t *testing.T) {
+	content := `
+server: {}
+chrome: {}
+logging: {}
+`
+	path := createTempConfig(t, content)
+	defer os.Remove(path)
+
+	cfg, err := Load(path)
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	if cfg.API.Enabled != false {
+		t.Errorf("API.Enabled = %v, want false", cfg.API.Enabled)
+	}
+	if len(cfg.API.Keys) != 0 {
+		t.Errorf("len(API.Keys) = %d, want 0", len(cfg.API.Keys))
+	}
+}
+
+func TestLoad_APIExplicitConfig(t *testing.T) {
+	content := `
+server: {}
+chrome: {}
+logging: {}
+api:
+  enabled: true
+  keys:
+    - "key1"
+    - "key2"
+`
+	path := createTempConfig(t, content)
+	defer os.Remove(path)
+
+	cfg, err := Load(path)
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	if cfg.API.Enabled != true {
+		t.Errorf("API.Enabled = %v, want true", cfg.API.Enabled)
+	}
+	if len(cfg.API.Keys) != 2 {
+		t.Errorf("len(API.Keys) = %d, want 2", len(cfg.API.Keys))
+	}
+	if cfg.API.Keys[0] != "key1" {
+		t.Errorf("API.Keys[0] = %q, want %q", cfg.API.Keys[0], "key1")
+	}
+}
+
+func TestLoad_APIEnabledNoKeys_ValidationError(t *testing.T) {
+	content := `
+server: {}
+chrome: {}
+logging: {}
+api:
+  enabled: true
+  keys: []
+`
+	path := createTempConfig(t, content)
+	defer os.Remove(path)
+
+	_, err := Load(path)
+	if err == nil {
+		t.Fatal("Load() expected error for API enabled with no keys, got nil")
+	}
+	if !strings.Contains(err.Error(), "API enabled but no keys") {
+		t.Errorf("error = %q, want it to contain %q", err.Error(), "API enabled but no keys")
+	}
+}
+
+func TestLoad_APIEmptyKey_ValidationError(t *testing.T) {
+	content := `
+server: {}
+chrome: {}
+logging: {}
+api:
+  enabled: true
+  keys:
+    - "valid"
+    - ""
+`
+	path := createTempConfig(t, content)
+	defer os.Remove(path)
+
+	_, err := Load(path)
+	if err == nil {
+		t.Fatal("Load() expected error for API with empty key, got nil")
+	}
+	if !strings.Contains(err.Error(), "empty") {
+		t.Errorf("error = %q, want it to contain %q", err.Error(), "empty")
+	}
+}
+
+func TestLoad_APIKeysEnvOverride(t *testing.T) {
+	content := `
+server: {}
+chrome: {}
+logging: {}
+api:
+  enabled: false
+  keys: []
+`
+	path := createTempConfig(t, content)
+	defer os.Remove(path)
+
+	os.Setenv("JSBUG_API_KEYS", "envkey1,envkey2")
+	defer os.Unsetenv("JSBUG_API_KEYS")
+
+	cfg, err := Load(path)
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	if cfg.API.Enabled != true {
+		t.Errorf("API.Enabled = %v, want true (from env override)", cfg.API.Enabled)
+	}
+	if len(cfg.API.Keys) != 2 {
+		t.Errorf("len(API.Keys) = %d, want 2", len(cfg.API.Keys))
+	}
+	if cfg.API.Keys[0] != "envkey1" {
+		t.Errorf("API.Keys[0] = %q, want %q", cfg.API.Keys[0], "envkey1")
+	}
+}
+
+func TestLoad_APIKeysEnvOverride_EmptySegments(t *testing.T) {
+	content := `
+server: {}
+chrome: {}
+logging: {}
+`
+	path := createTempConfig(t, content)
+	defer os.Remove(path)
+
+	os.Setenv("JSBUG_API_KEYS", "key1,,key2,")
+	defer os.Unsetenv("JSBUG_API_KEYS")
+
+	cfg, err := Load(path)
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	if cfg.API.Enabled != true {
+		t.Errorf("API.Enabled = %v, want true", cfg.API.Enabled)
+	}
+	if len(cfg.API.Keys) != 2 {
+		t.Errorf("len(API.Keys) = %d, want 2 (empty segments filtered out)", len(cfg.API.Keys))
+	}
+}
+
+func TestLoad_APIKeysEnvOverride_AllEmpty(t *testing.T) {
+	content := `
+server: {}
+chrome: {}
+logging: {}
+`
+	path := createTempConfig(t, content)
+	defer os.Remove(path)
+
+	os.Setenv("JSBUG_API_KEYS", ",,")
+	defer os.Unsetenv("JSBUG_API_KEYS")
+
+	cfg, err := Load(path)
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	if cfg.API.Enabled != false {
+		t.Errorf("API.Enabled = %v, want false (no valid keys)", cfg.API.Enabled)
+	}
+}
+
+func TestLoad_APIKeysEnvOverride_EmptyString(t *testing.T) {
+	content := `
+server: {}
+chrome: {}
+logging: {}
+`
+	path := createTempConfig(t, content)
+	defer os.Remove(path)
+
+	os.Setenv("JSBUG_API_KEYS", "")
+	defer os.Unsetenv("JSBUG_API_KEYS")
+
+	cfg, err := Load(path)
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+
+	if cfg.API.Enabled != false {
+		t.Errorf("API.Enabled = %v, want false (empty env string)", cfg.API.Enabled)
 	}
 }
 

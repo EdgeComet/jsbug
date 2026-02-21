@@ -17,6 +17,7 @@ type Config struct {
 	Chrome  ChromeConfig  `yaml:"chrome"`
 	Logging LoggingConfig `yaml:"logging"`
 	Captcha CaptchaConfig `yaml:"captcha"`
+	API     APIConfig     `yaml:"api"`
 }
 
 // ServerConfig contains HTTP server settings
@@ -50,6 +51,12 @@ type LoggingConfig struct {
 type CaptchaConfig struct {
 	Enabled   bool   `yaml:"enabled"`
 	SecretKey string `yaml:"secret_key"`
+}
+
+// APIConfig contains API key authentication settings
+type APIConfig struct {
+	Enabled bool     `yaml:"enabled"`
+	Keys    []string `yaml:"keys"`
 }
 
 // Default values
@@ -175,6 +182,22 @@ func (c *Config) applyEnvOverrides() {
 	if captchaSecret := os.Getenv("JSBUG_CAPTCHA_SECRET_KEY"); captchaSecret != "" {
 		c.Captcha.SecretKey = captchaSecret
 	}
+
+	// API key overrides
+	if apiKeys := os.Getenv("JSBUG_API_KEYS"); apiKeys != "" {
+		parts := strings.Split(apiKeys, ",")
+		var filteredKeys []string
+		for _, key := range parts {
+			trimmed := strings.TrimSpace(key)
+			if trimmed != "" {
+				filteredKeys = append(filteredKeys, trimmed)
+			}
+		}
+		if len(filteredKeys) > 0 {
+			c.API.Keys = filteredKeys
+			c.API.Enabled = true
+		}
+	}
 }
 
 // Validate checks if the configuration is valid
@@ -201,6 +224,16 @@ func (c *Config) Validate() error {
 	// Validate captcha config
 	if c.Captcha.Enabled && c.Captcha.SecretKey == "" {
 		return fmt.Errorf("captcha is enabled but secret_key is not set")
+	}
+
+	// Validate API config
+	if c.API.Enabled && len(c.API.Keys) == 0 {
+		return fmt.Errorf("API enabled but no keys configured")
+	}
+	for _, key := range c.API.Keys {
+		if strings.TrimSpace(key) == "" {
+			return fmt.Errorf("API keys must not be empty")
+		}
 	}
 
 	return nil

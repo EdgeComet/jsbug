@@ -1,6 +1,9 @@
 package types
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"net/http"
+)
 
 // Error codes
 const (
@@ -17,7 +20,31 @@ const (
 	ErrSessionTokenRequired = "SESSION_TOKEN_REQUIRED"
 	ErrSessionTokenInvalid  = "SESSION_TOKEN_INVALID"
 	ErrSessionTokenExpired  = "SESSION_TOKEN_EXPIRED"
+	ErrAPIKeyRequired       = "API_KEY_REQUIRED"
+	ErrAPIKeyInvalid        = "API_KEY_INVALID"
+	ErrMethodNotAllowed     = "METHOD_NOT_ALLOWED"
+	ErrInvalidRequestBody   = "INVALID_REQUEST_BODY"
 )
+
+// ErrorCodeToHTTPStatus maps an error code to the appropriate HTTP status code.
+func ErrorCodeToHTTPStatus(code string) int {
+	switch code {
+	case ErrInvalidURL, ErrInvalidTimeout, ErrInvalidWaitEvent, ErrDomainNotFound, ErrInvalidRequestBody:
+		return http.StatusBadRequest
+	case ErrAPIKeyRequired:
+		return http.StatusUnauthorized
+	case ErrAPIKeyInvalid, ErrSessionTokenRequired, ErrSessionTokenInvalid, ErrSessionTokenExpired:
+		return http.StatusForbidden
+	case ErrMethodNotAllowed:
+		return http.StatusMethodNotAllowed
+	case ErrRenderTimeout:
+		return http.StatusRequestTimeout
+	case ErrChromeUnavailable, ErrPoolExhausted, ErrPoolShuttingDown:
+		return http.StatusServiceUnavailable
+	default:
+		return http.StatusInternalServerError
+	}
+}
 
 // MaxBodyTextBytes is the maximum size for extracted body text (3MB)
 const MaxBodyTextBytes = 3 * 1024 * 1024
@@ -117,6 +144,8 @@ type RenderData struct {
 
 	// Raw HTML
 	HTML string `json:"html,omitempty"`
+
+	ScreenshotData []byte `json:"-"` // Raw screenshot bytes, not serialized to JSON
 }
 
 // NetworkRequest represents a single network request
@@ -161,4 +190,56 @@ type JSError struct {
 type RenderError struct {
 	Code    string `json:"code"`
 	Message string `json:"message"`
+}
+
+// Section represents a content section extracted from the page
+type Section struct {
+	SectionID    string `json:"section_id"`
+	HeadingLevel int    `json:"heading_level"`
+	HeadingText  string `json:"heading_text"`
+	BodyMarkdown string `json:"body_markdown"`
+}
+
+// ExtRenderData contains rendered page data for the external API.
+// Pointer types are used for optional content fields so nil = omitted from JSON,
+// while empty string = present but empty.
+type ExtRenderData struct {
+	// Always-included metadata fields
+	StatusCode      int               `json:"status_code"`
+	FinalURL        string            `json:"final_url"`
+	RedirectURL     string            `json:"redirect_url"`
+	CanonicalURL    string            `json:"canonical_url"`
+	PageSizeBytes   int               `json:"page_size_bytes"`
+	RenderTime      float64           `json:"render_time"`
+	MetaRobots      string            `json:"meta_robots"`
+	XRobotsTag      string            `json:"x_robots_tag"`
+	MetaIndexable   bool              `json:"meta_indexable"`
+	MetaFollow      bool              `json:"meta_follow"`
+	Title           string            `json:"title"`
+	MetaDescription string            `json:"meta_description"`
+	H1              []string          `json:"h1"`
+	H2              []string          `json:"h2"`
+	H3              []string          `json:"h3"`
+	WordCount       int               `json:"word_count"`
+	TextHtmlRatio   float64           `json:"text_html_ratio"`
+	OpenGraph       map[string]string `json:"open_graph"`
+	HrefLangs       []HrefLang        `json:"hreflang"`
+
+	// Opt-in content fields (pointer types: nil = omitted, non-nil = present)
+	HTML                *string           `json:"html,omitempty"`
+	BodyText            *string           `json:"body_text,omitempty"`
+	BodyTextTokensCount *int              `json:"body_text_tokens_count,omitempty"`
+	BodyMarkdown        *string           `json:"body_markdown,omitempty"`
+	Sections            []Section         `json:"sections,omitempty"`
+	Links               []Link            `json:"links,omitempty"`
+	Images              []Image           `json:"images,omitempty"`
+	StructuredData      []json.RawMessage `json:"structured_data,omitempty"`
+	Screenshot          *string           `json:"screenshot,omitempty"`
+}
+
+// ExtRenderResponse represents the external API response
+type ExtRenderResponse struct {
+	Success bool           `json:"success"`
+	Data    *ExtRenderData `json:"data,omitempty"`
+	Error   *RenderError   `json:"error,omitempty"`
 }

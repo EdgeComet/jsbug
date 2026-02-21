@@ -69,8 +69,56 @@ type RenderRequest struct {
 	BlockAnalytics  bool     `json:"block_analytics,omitempty"`
 	BlockAds        bool     `json:"block_ads,omitempty"`
 	BlockSocial     bool     `json:"block_social,omitempty"`
-	BlockedTypes    []string `json:"blocked_types,omitempty"`
-	SessionToken    string   `json:"session_token,omitempty"`
+	BlockedTypes      []string `json:"blocked_types,omitempty"`
+	CaptureScreenshot bool     `json:"-"`                       // Internal only, not JSON-exposed
+	SessionToken      string   `json:"session_token,omitempty"`
+}
+
+// ExtRenderRequest represents an external API request with content inclusion options
+type ExtRenderRequest struct {
+	URL             string   `json:"url"`
+	JSEnabled       bool     `json:"js_enabled"`
+	FollowRedirects *bool    `json:"follow_redirects,omitempty"`
+	UserAgent       string   `json:"user_agent"`
+	Timeout         int      `json:"timeout"`
+	WaitEvent       string   `json:"wait_event"`
+	BlockAnalytics  bool     `json:"block_analytics"`
+	BlockAds        bool     `json:"block_ads"`
+	BlockSocial     bool     `json:"block_social"`
+	BlockedTypes    []string `json:"blocked_types"`
+
+	IncludeHTML           bool `json:"include_html"`
+	IncludeText           bool `json:"include_text"`
+	IncludeMarkdown       bool `json:"include_markdown"`
+	IncludeSections       bool `json:"include_sections"`
+	IncludeLinks          bool `json:"include_links"`
+	IncludeImages         bool `json:"include_images"`
+	IncludeStructuredData bool `json:"include_structured_data"`
+	IncludeScreenshot     bool `json:"include_screenshot"`
+
+	MaxContentLength int `json:"max_content_length"`
+}
+
+// ToRenderRequest converts an ExtRenderRequest to a RenderRequest
+func (e *ExtRenderRequest) ToRenderRequest() *RenderRequest {
+	followRedirects := true
+	if e.FollowRedirects != nil {
+		followRedirects = *e.FollowRedirects
+	}
+	req := &RenderRequest{
+		URL:               e.URL,
+		JSEnabled:         e.JSEnabled,
+		FollowRedirects:   &followRedirects,
+		UserAgent:         e.UserAgent,
+		Timeout:           e.Timeout,
+		WaitEvent:         e.WaitEvent,
+		BlockAnalytics:    e.BlockAnalytics,
+		BlockAds:          e.BlockAds,
+		BlockSocial:       e.BlockSocial,
+		BlockedTypes:      e.BlockedTypes,
+		CaptureScreenshot: e.IncludeScreenshot,
+	}
+	return req
 }
 
 // ShouldFollowRedirects returns whether to follow redirects (default true)

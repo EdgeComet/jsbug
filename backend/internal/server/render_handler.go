@@ -82,6 +82,9 @@ func (h *RenderHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	// Apply defaults
 	req.ApplyDefaults()
 
+	// Internal frontend requests always capture screenshots
+	req.CaptureScreenshot = true
+
 	// Validate session token if enabled
 	if h.tokenManager != nil {
 		if req.SessionToken == "" {
@@ -239,12 +242,13 @@ func (h *RenderHandler) handleJSRender(ctx context.Context, req *types.RenderReq
 	// Build render options
 	userAgent := types.ResolveUserAgent(req.UserAgent)
 	opts := chrome.RenderOptions{
-		URL:       req.URL,
-		UserAgent: userAgent,
-		Timeout:   time.Duration(req.Timeout) * time.Second,
-		WaitEvent: req.WaitEvent,
-		Blocklist: blocklist,
-		IsMobile:  isMobileUserAgent(userAgent),
+		URL:               req.URL,
+		UserAgent:         userAgent,
+		Timeout:           time.Duration(req.Timeout) * time.Second,
+		WaitEvent:         req.WaitEvent,
+		Blocklist:         blocklist,
+		IsMobile:          isMobileUserAgent(userAgent),
+		CaptureScreenshot: req.CaptureScreenshot,
 	}
 
 	// Publish navigating event
@@ -351,6 +355,9 @@ func (h *RenderHandler) buildJSResponse(result *chrome.RenderResult, parseResult
 	if h.screenshotStore != nil && len(result.Screenshot) > 0 {
 		data.ScreenshotID = h.screenshotStore.Store(result.Screenshot)
 	}
+
+	// Store raw screenshot data for ext API access
+	data.ScreenshotData = result.Screenshot
 
 	// Add parsed content
 	if parseResult != nil {
@@ -505,19 +512,9 @@ func (h *RenderHandler) writeJSON(w http.ResponseWriter, response *types.RenderR
 	w.Header().Set("Content-Type", "application/json")
 
 	if !response.Success {
-		// Set appropriate status code based on error
 		statusCode := http.StatusInternalServerError
 		if response.Error != nil {
-			switch response.Error.Code {
-			case types.ErrInvalidURL, types.ErrInvalidTimeout, types.ErrInvalidWaitEvent, types.ErrDomainNotFound:
-				statusCode = http.StatusBadRequest
-			case types.ErrRenderTimeout:
-				statusCode = http.StatusRequestTimeout
-			case types.ErrChromeUnavailable, types.ErrPoolExhausted, types.ErrPoolShuttingDown:
-				statusCode = http.StatusServiceUnavailable
-			case types.ErrSessionTokenRequired, types.ErrSessionTokenInvalid, types.ErrSessionTokenExpired:
-				statusCode = http.StatusForbidden
-			}
+			statusCode = types.ErrorCodeToHTTPStatus(response.Error.Code)
 		}
 		w.WriteHeader(statusCode)
 	}

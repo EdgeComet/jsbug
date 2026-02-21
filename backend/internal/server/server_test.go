@@ -108,8 +108,8 @@ func TestCORS_AllowedOrigin(t *testing.T) {
 	}
 
 	allowHeaders := rec.Header().Get("Access-Control-Allow-Headers")
-	if allowHeaders != "Content-Type, X-Request-ID" {
-		t.Errorf("Access-Control-Allow-Headers = %q, want %q", allowHeaders, "Content-Type, X-Request-ID")
+	if allowHeaders != "Content-Type, X-Request-ID, X-API-Key" {
+		t.Errorf("Access-Control-Allow-Headers = %q, want %q", allowHeaders, "Content-Type, X-Request-ID, X-API-Key")
 	}
 }
 

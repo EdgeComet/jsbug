@@ -30,12 +30,13 @@ const (
 
 // RenderOptions contains options for rendering a page
 type RenderOptions struct {
-	URL       string
-	UserAgent string
-	Timeout   time.Duration
-	WaitEvent string
-	Blocklist *Blocklist
-	IsMobile  bool
+	URL               string
+	UserAgent         string
+	Timeout           time.Duration
+	WaitEvent         string
+	Blocklist         *Blocklist
+	IsMobile          bool
+	CaptureScreenshot bool
 }
 
 // RenderResult contains the results of rendering a page
@@ -454,8 +455,11 @@ func (r *RendererV2) buildTasks(opts RenderOptions, state *renderState, collecto
 			return nil
 		}),
 
-		// Capture screenshot (viewport only, PNG format)
+		// Capture screenshot (viewport only, PNG format) - only when requested
 		chromedp.ActionFunc(func(ctx context.Context) error {
+			if !opts.CaptureScreenshot {
+				return nil
+			}
 			var screenshotBuf []byte
 			err := chromedp.CaptureScreenshot(&screenshotBuf).Do(ctx)
 			if err != nil {

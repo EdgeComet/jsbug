@@ -113,6 +113,13 @@ func main() {
 	renderHandler.SetSSEManager(srv.SSEManager())
 	srv.SetRenderHandler(renderHandler)
 
+	// Set up external API handler (if API is enabled)
+	if cfg.API.Enabled {
+		extHandler := server.NewExtRenderHandler(renderHandler, cfg, log)
+		srv.SetExtRenderHandler(extHandler)
+		log.Info("External API enabled", zap.Int("api_keys", len(cfg.API.Keys)))
+	}
+
 	// Create and configure screenshot handler
 	screenshotHandler := server.NewScreenshotHandler(screenshotStore)
 	srv.SetScreenshotHandler(screenshotHandler)
