@@ -59,5 +59,8 @@ jsbug is a JavaScript page renderer that extracts SEO content from web pages. It
 
 - `cmd/jsbug/main.go` - Entry point, wires up all components
 - `internal/server/render_handler.go` - Main API logic, orchestrates render/fetch + parse
+- `internal/server/ext_render_handler.go` - Public API handler (`POST /api/ext/render`)
 - `internal/chrome/renderer.go` - Chrome rendering with configurable wait strategies
 - `internal/chrome/events.go` - CDP event collection (network, console, lifecycle)
+- `internal/parser/sections.go` - Structured sections extraction for public API
+- `API.md` - Public API reference documentation
