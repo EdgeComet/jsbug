@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>Mixed Detection</title></head>
+<body>
+<h1>Page Title</h1>
+<p>Introduction paragraph.</p>
+<div role="heading" aria-level="2">ARIA Section</div>
+<p>Content under ARIA heading.</p>
+<div role="heading" aria-level="3" class="section-heading">ARIA Priority Test</div>
+<p>This has both ARIA role and CSS class. ARIA should win.</p>
+<div class="section-heading">CSS Section</div>
+<p>Content under CSS class heading.</p>
+<div data-heading="true">Data Section</div>
+<p>Content under data attribute heading.</p>
+<div data-heading="false">Not a Heading</div>
+<p>This div should NOT create a section boundary.</p>
+</body>
+</html>

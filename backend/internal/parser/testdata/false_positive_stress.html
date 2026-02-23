@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><title>False Positive Stress</title></head>
+<body>
+<h1>Real Title</h1>
+<p>Main content paragraph.</p>
+<div class="heading-group"><h2>Grouped Heading</h2><p>subtitle text</p></div>
+<p>After grouped heading.</p>
+<div class="heading-container">This is a very long paragraph that contains more than two hundred characters of text content which should exceed the maximum rune count limit for visual heading detection and therefore be rejected by the text length filter during the isVisualHeading check in the section extraction algorithm.</div>
+<div class="heading"></div>
+<div><code class="section-heading">inline code block</code></div>
+<div class="section-heading">Legit Visual</div>
+<p>Content under legit visual heading.</p>
+<h2>Another Real</h2>
+<p>Content under another real heading.</p>
+</body>
+</html>

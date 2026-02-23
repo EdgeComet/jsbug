@@ -64,29 +64,40 @@ func sectionKey(level int, heading string) string {
 	return fmt.Sprintf("h%d:%s", level, strings.ToLower(strings.TrimSpace(heading)))
 }
 
+// sectionTextKey returns just the normalized heading text for text-only matching.
+func sectionTextKey(heading string) string {
+	return strings.ToLower(strings.TrimSpace(heading))
+}
+
 // DiffSections compares two slices of sections and produces a list of SectionDiff entries.
-// Sections are matched by a key derived from heading level and normalized heading text.
+// Sections are matched in two passes: first by exact key (heading level + text), then by
+// text-only fallback for sections where JS rendering changed the heading level.
 // Unmatched JS sections are marked "added_by_js"; unmatched non-JS sections are "removed_by_js".
 func DiffSections(js, nonJS []types.Section) []types.SectionDiff {
 	if len(js) == 0 && len(nonJS) == 0 {
 		return nil
 	}
 
-	// Build map of non-JS sections grouped by key.
+	// Build maps of non-JS sections grouped by exact key and text key.
 	nonJSByKey := make(map[string][]int, len(nonJS))
+	nonJSByText := make(map[string][]int, len(nonJS))
 	for i, s := range nonJS {
 		key := sectionKey(s.HeadingLevel, s.HeadingText)
 		nonJSByKey[key] = append(nonJSByKey[key], i)
+		textKey := sectionTextKey(s.HeadingText)
+		if textKey != "" {
+			nonJSByText[textKey] = append(nonJSByText[textKey], i)
+		}
 	}
 
 	consumed := make(map[int]bool, len(nonJS))
+	jsMatched := make(map[int]bool, len(js))
 	var result []types.SectionDiff
 
-	// Walk JS sections in order.
-	for _, jsSection := range js {
+	// Pass 1: exact key match.
+	for i, jsSection := range js {
 		key := sectionKey(jsSection.HeadingLevel, jsSection.HeadingText)
 		indices := nonJSByKey[key]
-
 		matchIdx := -1
 		for _, idx := range indices {
 			if !consumed[idx] {
@@ -94,9 +105,9 @@ func DiffSections(js, nonJS []types.Section) []types.SectionDiff {
 				break
 			}
 		}
-
 		if matchIdx >= 0 {
 			consumed[matchIdx] = true
+			jsMatched[i] = true
 			nonJSSection := nonJS[matchIdx]
 			if jsSection.BodyMarkdown == nonJSSection.BodyMarkdown {
 				result = append(result, types.SectionDiff{
@@ -114,7 +125,44 @@ func DiffSections(js, nonJS []types.Section) []types.SectionDiff {
 					NonJSBodyMarkdown: nonJSSection.BodyMarkdown,
 				})
 			}
-		} else {
+		}
+	}
+
+	// Pass 2: text-only fallback for unmatched JS sections.
+	for i, jsSection := range js {
+		if jsMatched[i] {
+			continue
+		}
+		textKey := sectionTextKey(jsSection.HeadingText)
+		if textKey == "" {
+			continue // skip empty text (intro sections)
+		}
+		indices := nonJSByText[textKey]
+		matchIdx := -1
+		for _, idx := range indices {
+			if !consumed[idx] {
+				matchIdx = idx
+				break
+			}
+		}
+		if matchIdx >= 0 {
+			consumed[matchIdx] = true
+			jsMatched[i] = true
+			nonJSSection := nonJS[matchIdx]
+			result = append(result, types.SectionDiff{
+				SectionID:           jsSection.SectionID,
+				HeadingLevel:        jsSection.HeadingLevel,
+				HeadingText:         jsSection.HeadingText,
+				Status:              "changed",
+				NonJSBodyMarkdown:   nonJSSection.BodyMarkdown,
+				HeadingLevelChanged: true,
+			})
+		}
+	}
+
+	// Remaining unmatched JS sections -> added_by_js.
+	for i, jsSection := range js {
+		if !jsMatched[i] {
 			result = append(result, types.SectionDiff{
 				SectionID:    jsSection.SectionID,
 				HeadingLevel: jsSection.HeadingLevel,
@@ -124,7 +172,7 @@ func DiffSections(js, nonJS []types.Section) []types.SectionDiff {
 		}
 	}
 
-	// Append unconsumed non-JS sections as removed_by_js.
+	// Remaining unconsumed non-JS sections -> removed_by_js.
 	for i, s := range nonJS {
 		if !consumed[i] {
 			result = append(result, types.SectionDiff{

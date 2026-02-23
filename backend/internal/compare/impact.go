@@ -19,12 +19,12 @@ const (
 // JS-rendered data against non-JS data and the computed diff.
 func ComputeRenderingImpact(jsData, nonJSData *types.RenderData, diff *types.CompareDiff) *types.RenderingImpact {
 	impact := &types.RenderingImpact{
-		TitleChanged:    jsData.Title != nonJSData.Title,
-		MetaDescChanged: jsData.MetaDescription != nonJSData.MetaDescription,
+		TitleChanged:     jsData.Title != nonJSData.Title,
+		MetaDescChanged:  jsData.MetaDescription != nonJSData.MetaDescription,
 		CanonicalChanged: jsData.CanonicalURL != nonJSData.CanonicalURL,
-		H1Changed:       !slicesEqual(jsData.H1, nonJSData.H1),
-		WordCountJS:     jsData.WordCount,
-		WordCountNonJS:  nonJSData.WordCount,
+		H1Changed:        !slicesEqual(jsData.H1, nonJSData.H1),
+		WordCountJS:      jsData.WordCount,
+		WordCountNonJS:   nonJSData.WordCount,
 	}
 
 	// Content change percent

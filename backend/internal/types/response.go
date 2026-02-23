@@ -195,10 +195,11 @@ type RenderError struct {
 
 // Section represents a content section extracted from the page
 type Section struct {
-	SectionID    string `json:"section_id"`
-	HeadingLevel int    `json:"heading_level"`
-	HeadingText  string `json:"heading_text"`
-	BodyMarkdown string `json:"body_markdown"`
+	SectionID       string `json:"section_id"`
+	HeadingLevel    int    `json:"heading_level"`
+	HeadingText     string `json:"heading_text"`
+	BodyMarkdown    string `json:"body_markdown"`
+	DetectionMethod string `json:"detection_method,omitempty"`
 }
 
 // ExtRenderData contains rendered page data for the external API.

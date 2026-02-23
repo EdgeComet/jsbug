@@ -568,6 +568,156 @@ func TestDiffStructuredData_DuplicateTypeBothSides(t *testing.T) {
 	}
 }
 
+func TestDiffSections_CrossLevelMatch(t *testing.T) {
+	js := []types.Section{
+		{SectionID: "s1", HeadingLevel: 2, HeadingText: "Features", BodyMarkdown: "JS content"},
+	}
+	nonJS := []types.Section{
+		{SectionID: "s1", HeadingLevel: 3, HeadingText: "Features", BodyMarkdown: "HTTP content"},
+	}
+
+	result := DiffSections(js, nonJS)
+	if len(result) != 1 {
+		t.Fatalf("expected 1 diff, got %d", len(result))
+	}
+	if result[0].Status != "changed" {
+		t.Errorf("expected status changed, got %q", result[0].Status)
+	}
+	if !result[0].HeadingLevelChanged {
+		t.Error("expected HeadingLevelChanged=true")
+	}
+	if result[0].HeadingLevel != 2 {
+		t.Errorf("expected HeadingLevel=2 (from JS), got %d", result[0].HeadingLevel)
+	}
+	if result[0].NonJSBodyMarkdown != "HTTP content" {
+		t.Errorf("expected NonJSBodyMarkdown=%q, got %q", "HTTP content", result[0].NonJSBodyMarkdown)
+	}
+}
+
+func TestDiffSections_CrossLevelMatchSameBody(t *testing.T) {
+	js := []types.Section{
+		{SectionID: "s1", HeadingLevel: 2, HeadingText: "Features", BodyMarkdown: "Same content"},
+	}
+	nonJS := []types.Section{
+		{SectionID: "s1", HeadingLevel: 3, HeadingText: "Features", BodyMarkdown: "Same content"},
+	}
+
+	result := DiffSections(js, nonJS)
+	if len(result) != 1 {
+		t.Fatalf("expected 1 diff, got %d", len(result))
+	}
+	if result[0].Status != "changed" {
+		t.Errorf("expected status changed, got %q", result[0].Status)
+	}
+	if !result[0].HeadingLevelChanged {
+		t.Error("expected HeadingLevelChanged=true even though body is identical")
+	}
+}
+
+func TestDiffSections_ExactMatchTakesPriority(t *testing.T) {
+	js := []types.Section{
+		{SectionID: "s1", HeadingLevel: 2, HeadingText: "Features", BodyMarkdown: "A"},
+		{SectionID: "s2", HeadingLevel: 3, HeadingText: "Features", BodyMarkdown: "B"},
+	}
+	nonJS := []types.Section{
+		{SectionID: "s1", HeadingLevel: 2, HeadingText: "Features", BodyMarkdown: "C"},
+		{SectionID: "s2", HeadingLevel: 3, HeadingText: "Features", BodyMarkdown: "D"},
+	}
+
+	result := DiffSections(js, nonJS)
+	if len(result) != 2 {
+		t.Fatalf("expected 2 diffs, got %d", len(result))
+	}
+	for i, d := range result {
+		if d.Status != "changed" {
+			t.Errorf("result[%d]: expected status changed, got %q", i, d.Status)
+		}
+		if d.HeadingLevelChanged {
+			t.Errorf("result[%d]: expected HeadingLevelChanged=false (exact key match)", i)
+		}
+	}
+}
+
+func TestDiffSections_TextFallbackSkipsEmptyText(t *testing.T) {
+	js := []types.Section{
+		{SectionID: "s1", HeadingLevel: 0, HeadingText: "", BodyMarkdown: "JS intro"},
+		{SectionID: "s2", HeadingLevel: 2, HeadingText: "Title", BodyMarkdown: "JS body"},
+	}
+	nonJS := []types.Section{
+		{SectionID: "s1", HeadingLevel: 0, HeadingText: "", BodyMarkdown: "HTTP intro"},
+		{SectionID: "s2", HeadingLevel: 3, HeadingText: "Title", BodyMarkdown: "HTTP body"},
+	}
+
+	result := DiffSections(js, nonJS)
+	if len(result) != 2 {
+		t.Fatalf("expected 2 diffs, got %d", len(result))
+	}
+
+	// Intro sections match by exact key in pass 1.
+	introFound := false
+	titleFound := false
+	for _, d := range result {
+		if d.SectionID == "s1" {
+			introFound = true
+			if d.Status != "changed" {
+				t.Errorf("intro section: expected status changed, got %q", d.Status)
+			}
+			if d.HeadingLevelChanged {
+				t.Error("intro section: expected HeadingLevelChanged=false (exact key match)")
+			}
+		}
+		if d.SectionID == "s2" {
+			titleFound = true
+			if d.Status != "changed" {
+				t.Errorf("title section: expected status changed, got %q", d.Status)
+			}
+			if !d.HeadingLevelChanged {
+				t.Error("title section: expected HeadingLevelChanged=true (text fallback match)")
+			}
+		}
+	}
+	if !introFound {
+		t.Error("intro section (s1) not found in results")
+	}
+	if !titleFound {
+		t.Error("title section (s2) not found in results")
+	}
+}
+
+func TestDiffSections_TextFallbackMultipleSameText(t *testing.T) {
+	js := []types.Section{
+		{SectionID: "s1", HeadingLevel: 2, HeadingText: "Features", BodyMarkdown: "A"},
+	}
+	nonJS := []types.Section{
+		{SectionID: "s1", HeadingLevel: 3, HeadingText: "Features", BodyMarkdown: "C"},
+		{SectionID: "s2", HeadingLevel: 4, HeadingText: "Features", BodyMarkdown: "D"},
+	}
+
+	result := DiffSections(js, nonJS)
+	if len(result) != 2 {
+		t.Fatalf("expected 2 diffs, got %d", len(result))
+	}
+
+	// First result: JS s1 matched NonJS s1 by text fallback.
+	if result[0].SectionID != "s1" {
+		t.Errorf("result[0]: expected SectionID s1, got %q", result[0].SectionID)
+	}
+	if result[0].Status != "changed" {
+		t.Errorf("result[0]: expected status changed, got %q", result[0].Status)
+	}
+	if !result[0].HeadingLevelChanged {
+		t.Error("result[0]: expected HeadingLevelChanged=true")
+	}
+
+	// Second result: NonJS s2 is unconsumed -> removed_by_js.
+	if result[1].SectionID != "s2" {
+		t.Errorf("result[1]: expected SectionID s2, got %q", result[1].SectionID)
+	}
+	if result[1].Status != "removed_by_js" {
+		t.Errorf("result[1]: expected status removed_by_js, got %q", result[1].Status)
+	}
+}
+
 // sliceEqual compares two string slices for equality.
 func sliceEqual(a, b []string) bool {
 	if len(a) != len(b) {

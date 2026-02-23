@@ -65,9 +65,9 @@ func (e *ExtCompareRequest) ToHTTPRenderRequest() *RenderRequest {
 
 // ExtCompareResponse represents the external API response for a compare request.
 type ExtCompareResponse struct {
-	Success bool             `json:"success"`
-	Data    *ExtCompareData  `json:"data,omitempty"`
-	Error   *RenderError     `json:"error,omitempty"`
+	Success bool            `json:"success"`
+	Data    *ExtCompareData `json:"data,omitempty"`
+	Error   *RenderError    `json:"error,omitempty"`
 }
 
 // ExtCompareData contains the comparison results between JS-rendered and non-JS versions.
@@ -121,11 +121,12 @@ type StringSliceDiff struct {
 
 // SectionDiff represents a difference in a content section between JS and non-JS versions.
 type SectionDiff struct {
-	SectionID        string `json:"section_id"`
-	HeadingLevel     int    `json:"heading_level"`
-	HeadingText      string `json:"heading_text"`
-	Status           string `json:"status"` // "unchanged", "changed", "added_by_js", "removed_by_js"
-	NonJSBodyMarkdown string `json:"non_js_body_markdown,omitempty"`
+	SectionID           string `json:"section_id"`
+	HeadingLevel        int    `json:"heading_level"`
+	HeadingText         string `json:"heading_text"`
+	Status              string `json:"status"` // "unchanged", "changed", "added_by_js", "removed_by_js"
+	NonJSBodyMarkdown   string `json:"non_js_body_markdown,omitempty"`
+	HeadingLevelChanged bool   `json:"heading_level_changed,omitempty"`
 }
 
 // LinksDiff represents differences in extracted links between JS and non-JS versions.
@@ -153,18 +154,18 @@ type StructuredDataDiff struct {
 
 // RenderingImpact summarizes the overall impact of JavaScript rendering on the page.
 type RenderingImpact struct {
-	OverallChange        string  `json:"overall_change"` // "none", "minor", "major"
-	TitleChanged         bool    `json:"title_changed"`
-	MetaDescChanged      bool    `json:"meta_desc_changed"`
-	CanonicalChanged     bool    `json:"canonical_changed"`
-	H1Changed            bool    `json:"h1_changed"`
-	ContentChangePercent float64 `json:"content_change_percent"`
-	WordCountJS          int     `json:"word_count_js"`
-	WordCountNonJS       int     `json:"word_count_non_js"`
-	LinksAdded           int     `json:"links_added"`
-	LinksRemoved         int     `json:"links_removed"`
-	ImagesAdded          int     `json:"images_added"`
-	ImagesRemoved        int     `json:"images_removed"`
-	StructuredDataAdded  int     `json:"structured_data_added"`
-	StructuredDataRemoved int    `json:"structured_data_removed"`
+	OverallChange         string  `json:"overall_change"` // "none", "minor", "major"
+	TitleChanged          bool    `json:"title_changed"`
+	MetaDescChanged       bool    `json:"meta_desc_changed"`
+	CanonicalChanged      bool    `json:"canonical_changed"`
+	H1Changed             bool    `json:"h1_changed"`
+	ContentChangePercent  float64 `json:"content_change_percent"`
+	WordCountJS           int     `json:"word_count_js"`
+	WordCountNonJS        int     `json:"word_count_non_js"`
+	LinksAdded            int     `json:"links_added"`
+	LinksRemoved          int     `json:"links_removed"`
+	ImagesAdded           int     `json:"images_added"`
+	ImagesRemoved         int     `json:"images_removed"`
+	StructuredDataAdded   int     `json:"structured_data_added"`
+	StructuredDataRemoved int     `json:"structured_data_removed"`
 }
