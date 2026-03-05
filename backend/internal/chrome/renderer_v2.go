@@ -415,43 +415,35 @@ func (r *RendererV2) buildTasks(opts RenderOptions, state *renderState, collecto
 
 		// Fallback status code retrieval (if event listener missed it)
 		chromedp.ActionFunc(func(ctx context.Context) error {
-			state.mu.Lock()
-			currentStatusCode := state.statusCode
-			state.mu.Unlock()
+			var viewportHeight float64
+			if err := chromedp.Evaluate(`window.innerHeight`, &viewportHeight).Do(ctx); err != nil {
+				return nil
+			}
 
-			if currentStatusCode == 0 {
-				var statusCodeResult int64
-				err := chromedp.Evaluate(`
-					(function() {
-						try {
-							var navEntry = performance.getEntriesByType('navigation')[0];
-							if (navEntry && navEntry.responseStatus) {
-								return navEntry.responseStatus;
-							}
-							return 0;
-						} catch (e) {
-							return 0;
-						}
-					})()
-				`, &statusCodeResult).Do(ctx)
+			var scrollHeight float64
+			if err := chromedp.Evaluate(`document.documentElement.scrollHeight`, &scrollHeight).Do(ctx); err != nil {
+				return nil
+			}
 
-				if err != nil {
-					r.logger.Warn("Failed to retrieve status code via Performance API fallback",
-						zap.String("url", opts.URL),
-						zap.Error(err))
+			maxScroll := 7000.0
+			if scrollHeight < maxScroll {
+				maxScroll = scrollHeight
+			}
+
+			for y := 0.0; y < maxScroll; y += viewportHeight {
+				js := fmt.Sprintf(`window.scrollTo(0, %f)`, y)
+				if err := chromedp.Evaluate(js, nil).Do(ctx); err != nil {
 					return nil
 				}
-
-				if statusCodeResult > 0 {
-					state.mu.Lock()
-					state.statusCode = int(statusCodeResult)
-					state.mu.Unlock()
-
-					r.logger.Info("Status code retrieved via Performance API fallback",
-						zap.String("url", opts.URL),
-						zap.Int("status_code", int(statusCodeResult)))
-				}
+				time.Sleep(120 * time.Millisecond)
 			}
+
+			if err := chromedp.Evaluate(`window.scrollTo(0, 0)`, nil).Do(ctx); err != nil {
+				return nil
+			}
+
+			time.Sleep(150 * time.Millisecond)
+
 			return nil
 		}),
 
@@ -460,13 +452,36 @@ func (r *RendererV2) buildTasks(opts RenderOptions, state *renderState, collecto
 			if !opts.CaptureScreenshot {
 				return nil
 			}
-			var screenshotBuf []byte
-			err := chromedp.CaptureScreenshot(&screenshotBuf).Do(ctx)
+
+			// Get layout metrics
+			_, _, contentSize, _, _, _, err := page.GetLayoutMetrics().Do(ctx)
 			if err != nil {
-				r.logger.Warn("Failed to capture screenshot",
+				return err
+			}
+
+			maxHeight := 7000.0
+			captureHeight := contentSize.Height
+			if captureHeight >= maxHeight {
+				captureHeight = maxHeight
+			}
+
+			// Capture screenshot (returns []byte)
+			screenshotBuf, err := page.CaptureScreenshot().
+				WithFormat(page.CaptureScreenshotFormatPng).
+				WithCaptureBeyondViewport(true).
+				WithClip(&page.Viewport{
+					X:      0,
+					Y:      0,
+					Width:  contentSize.Width,
+					Height: captureHeight,
+					Scale:  1,
+				}).
+				Do(ctx)
+
+			if err != nil {
+				r.logger.Warn("Failed to capture capped screenshot",
 					zap.String("url", opts.URL),
 					zap.Error(err))
-				// Don't fail the render if screenshot fails
 				return nil
 			}
 

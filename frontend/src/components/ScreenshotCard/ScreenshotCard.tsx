@@ -152,18 +152,19 @@ export function ScreenshotCard({ screenshotId }: ScreenshotCardProps) {
 
       {/* Full-size modal */}
       {showFullSize && imageUrl && createPortal(
-        <div
-          onClick={handleCloseModal}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.85)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            zIndex: 9999,
-            padding: '24px'
-          }}
+       <div
+        onClick={handleCloseModal}
+        style={{
+          position: 'fixed',
+          inset: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.85)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 9999,
+          padding: '32px 24px',
+          overflow: 'hidden'
+        }}
         >
           {/* Close button */}
           <button
@@ -196,18 +197,27 @@ export function ScreenshotCard({ screenshotId }: ScreenshotCardProps) {
           </button>
 
           {/* Image container - stop propagation so clicking image doesn't close modal */}
-          <img
+          <div
             onClick={(e) => e.stopPropagation()}
-            src={imageUrl}
-            alt="Page screenshot - full size"
             style={{
               maxWidth: '100%',
-              maxHeight: '100%',
-              objectFit: 'contain',
-              borderRadius: '4px',
-              boxShadow: '0 4px 24px rgba(0, 0, 0, 0.5)'
+              maxHeight: 'calc(100vh - 80px)',
+              overflowY: 'auto',
+              overflowX: 'hidden',
+              background: '#ffffff',
             }}
-          />
+          >
+            <img
+              src={imageUrl}
+              alt="Page screenshot - full size"
+              style={{
+                display: 'block',
+                width: '100%',
+                height: 'auto',
+                maxWidth: '1920px'
+              }}
+            />
+          </div>
 
           {/* Help text */}
           <span style={{

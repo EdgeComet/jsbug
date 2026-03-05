@@ -85,7 +85,7 @@ function AppContent() {
       }, 0)
     } else {
       // No target URL, set default
-      setUrl('https://example.com/')
+      setUrl('https://www.example.com/')
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
